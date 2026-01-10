@@ -1,0 +1,171 @@
+[project]
+name = "distill-sql"
+version = "0.1.0"
+description = "Task-specific distillation of GPT-4o-mini text-to-SQL into Qwen2.5-0.5B via LoRA on Spider"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11,<3.14"
+authors = [{ name = "zxuhan" }]
+keywords = ["distillation", "text-to-sql", "spider", "qwen", "mlx", "lora"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "mlx>=0.21",
+    "mlx-lm>=0.21",
+    "openai>=1.50",
+    "datasets>=2.20",
+    "sqlglot>=25.0",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.4",
+    "typer>=0.12",
+    "rich>=13.7",
+    "structlog>=24.1",
+    "tenacity>=8.5",
+    "httpx>=0.27",
+    "python-dotenv>=1.0",
+    "jinja2>=3.1",
+    "numpy>=1.26",
+    "matplotlib>=3.8",
+    "pyyaml>=6.0",
+    "tqdm>=4.66",
+    "psutil>=5.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "pytest-asyncio>=0.23",
+    "hypothesis>=6.100",
+    "ruff>=0.6",
+    "mypy>=1.10",
+    "types-PyYAML",
+    "types-tqdm",
+    "types-psutil",
+]
+
+[project.scripts]
+distill-sql = "distill_sql.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/distill_sql"]
+
+# ----- ruff -----
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "N",    # pep8-naming
+    "UP",   # pyupgrade
+    "B",    # bugbear
+    "C4",   # comprehensions
+    "SIM",  # simplify
+    "RET",  # return
+    "TCH",  # type-checking
+    "PTH",  # pathlib
+    "PL",   # pylint
+    "RUF",  # ruff-specific
+]
+ignore = [
+    "PLR0913", # too many arguments — ML configs legitimately have many
+    "PLR2004", # magic value — too noisy in tests
+    "E501",    # handled by formatter
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["PLR2004", "S101", "PLR0915"]
+"scripts/**/*.py" = ["T201"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+# ----- mypy -----
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unreachable = true
+files = ["src", "tests"]
+exclude = [
+    "third_party/",
+]
+
+# mlx-lm has incomplete type stubs; carve out training module from strict checks.
+[[tool.mypy.overrides]]
+module = "distill_sql.student.train"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["mlx.*", "mlx_lm.*", "datasets.*", "sqlglot.*", "matplotlib.*"]
+ignore_missing_imports = true
+
+# ----- pytest -----
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--cov=src/distill_sql/data",
+    "--cov=src/distill_sql/eval",
+    "--cov=src/distill_sql/sql",
+    "--cov=src/distill_sql/teacher/client",
+    "--cov=src/distill_sql/cli",
+    "--cov=src/distill_sql/config",
+    "--cov-report=term-missing",
+    "--cov-report=html:reports/htmlcov",
+    "--cov-fail-under=90",
+]
+testpaths = ["tests"]
+markers = [
+    "slow: tests that take more than a few seconds (deselect with -m 'not slow')",
+    "integration: tests that require network or large model loads",
+    "needs_openai: tests that hit the OpenAI API",
+    "needs_mlx: tests that load a real MLX model",
+]
+asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::DeprecationWarning:datasets.*",
+]
+
+[tool.coverage.run]
+branch = true
+source = [
+    "src/distill_sql/data",
+    "src/distill_sql/eval",
+    "src/distill_sql/sql",
+    "src/distill_sql/teacher",
+    "src/distill_sql/cli",
+    "src/distill_sql/config",
+]
+omit = [
+    "src/distill_sql/teacher/generate.py",
+    "src/distill_sql/student/*",
+]
+
+[tool.coverage.report]
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "@(abc\\.)?abstractmethod",
+    "pragma: no cover",
+]

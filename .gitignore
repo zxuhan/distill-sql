@@ -1,0 +1,80 @@
+# Claude/AI assistant working files - NEVER commit
+CLAUDE.md
+.claude/
+PLANNING.md
+NOTES.md
+SCRATCH.md
+TODO.md
+*.claude.md
+.aider*
+
+# Environment
+.env
+.env.local
+.envrc
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.cache/
+coverage.xml
+*.cover
+.hypothesis/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Project-specific (large data and models, not committed).
+# Anchored so the package's src/distill_sql/data/ directory is still tracked.
+/data/
+/artifacts/
+*.sqlite
+*.sqlite3
+
+# Allow specific committed reports/figures
+!reports/
+!reports/**/*.png
+!reports/**/*.json
+!reports/**/*.md
+!reports/**/*.jsonl
+
+# Logs
+*.log
+
+# Jupyter
+.ipynb_checkpoints/
