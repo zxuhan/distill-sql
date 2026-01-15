@@ -1,0 +1,13 @@
+# Quick eval: just the base Qwen2.5-0.5B-Instruct.
+# Used to lock in the baseline number before any training.
+
+runs:
+  - name: base_qwen_0p5b
+    kind: base
+    model_id: mlx-community/Qwen2.5-0.5B-Instruct-bf16
+    temperature: 0.0
+    max_tokens: 256
+    use_reasoning_prompt: false
+
+output_dir: reports/predictions
+evaluator_dir: third_party/test-suite-sql-eval

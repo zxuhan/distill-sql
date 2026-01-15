@@ -1,0 +1,30 @@
+# Primary student LoRA training config.
+# Rank 16 with all decoder linears, mix of direct + reasoning traces.
+
+base:
+  model_id: mlx-community/Qwen2.5-0.5B-Instruct-bf16
+  max_seq_len: 2048
+
+traces_path: artifacts/traces/spider_train.jsonl
+val_split: 0.05
+
+rank: 16
+alpha: 32.0
+dropout: 0.05
+
+learning_rate: 1.0e-4
+warmup_steps: 100
+schedule: cosine
+
+batch_size: 1
+grad_accum: 8
+epochs: 2
+eval_every_steps: 250
+save_every_steps: 250
+
+seed: 42
+
+include_reasoning_traces: true
+
+output_dir: artifacts/runs
+run_name: primary

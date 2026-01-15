@@ -1,0 +1,10 @@
+# Filtering rules applied to teacher candidates before they enter the
+# training set. Every flag is logged in the per-run stats so we can see how
+# many examples were dropped by each rule.
+
+require_executes: true
+require_matches_gold: true
+fallback_executes_only: true
+require_parse: true
+require_table_grounded: true
+execution_timeout_s: 5.0

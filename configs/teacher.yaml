@@ -1,0 +1,19 @@
+# Teacher trace generation config.
+#
+# At ~$0.0009 per example with n=3 self-consistency, the projected cost for
+# all 9.5K Spider train examples is ~$8-12 -- well under the $50 cap.
+
+model: gpt-4o-mini-2024-07-18
+temperature: 0.3
+n_samples: 3
+max_tokens_direct: 256
+max_tokens_reasoning: 512
+reasoning_share: 0.4
+concurrency: 12
+request_timeout_s: 60.0
+max_retries: 5
+cache_dir: artifacts/cache/teacher
+output_dir: artifacts/traces
+max_spend_usd: 50.0
+price_input_per_m: 0.15
+price_output_per_m: 0.60
