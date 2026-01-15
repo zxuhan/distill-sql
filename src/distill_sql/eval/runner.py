@@ -19,12 +19,11 @@ import re
 import subprocess
 import sys
 import tempfile
-from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from .._compat import readable_path
-from ..data.spider import SpiderExample, SpiderSchema, open_db
 from ..sql.normalize import parses
 from ..sql.validate import check_executes
 from .metrics import (
@@ -34,6 +33,11 @@ from .metrics import (
     classify_failure,
     summarize,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from ..data.spider import SpiderExample, SpiderSchema
 
 # Match a numeric line like:
 #   execution         0.471          0.612          0.305          0.211          0.418
@@ -67,7 +71,9 @@ def parse_official_output(stdout: str) -> OfficialResult:
 
     Raises ``ValueError`` if either expected line is missing.
     """
-    rows = {m.group(1): tuple(float(x) for x in m.groups()[1:]) for m in _RESULT_LINE.finditer(stdout)}
+    rows = {
+        m.group(1): tuple(float(x) for x in m.groups()[1:]) for m in _RESULT_LINE.finditer(stdout)
+    }
     if "execution" not in rows or "exact match" not in rows:
         raise ValueError(
             "evaluator output did not contain expected 'execution' and "
@@ -219,10 +225,14 @@ def evaluate_predictions(
 
         gold_rows = _safe_execute(db_dir / ex.db_id / f"{ex.db_id}.sqlite", ex.query)
         pred_parses = parses(pred_sql) if pred_sql else False
-        pred_exec = check_executes(
-            pred_sql,
-            db_dir / ex.db_id / f"{ex.db_id}.sqlite",
-        ).ok if pred_sql else False
+        pred_exec = (
+            check_executes(
+                pred_sql,
+                db_dir / ex.db_id / f"{ex.db_id}.sqlite",
+            ).ok
+            if pred_sql
+            else False
+        )
         pred_rows = (
             _safe_execute(db_dir / ex.db_id / f"{ex.db_id}.sqlite", pred_sql)
             if pred_sql and pred_exec
@@ -341,12 +351,15 @@ def run_official_evaluator(
 
     ``etype`` is the evaluator's mode: ``exec``, ``match``, or ``all``.
     """
-    eval_script = evaluator_dir / "evaluation.py"
+    eval_script = (evaluator_dir / "evaluation.py").resolve()
     if not eval_script.exists():
         raise FileNotFoundError(
             f"vendored evaluator not found at {readable_path(eval_script)}; "
             f"run scripts/vendor_evaluator.sh first",
         )
+    abs_db = db_dir.resolve()
+    abs_tables = tables_json.resolve()
+    abs_evaluator_dir = evaluator_dir.resolve()
 
     with tempfile.TemporaryDirectory(prefix="distill-sql-eval-") as _tmp:
         tmp = Path(_tmp)
@@ -362,19 +375,19 @@ def run_official_evaluator(
             "--gold",
             str(gold_file),
             "--db",
-            str(db_dir),
+            str(abs_db),
             "--table",
-            str(tables_json),
+            str(abs_tables),
             "--etype",
             etype,
         ]
-        proc = subprocess.run(  # noqa: S603 — fixed argv, no shell
+        proc = subprocess.run(
             cmd,
             check=False,
             capture_output=True,
             text=True,
             timeout=timeout_s,
-            cwd=evaluator_dir,
+            cwd=abs_evaluator_dir,
         )
         if proc.returncode != 0:
             raise RuntimeError(
