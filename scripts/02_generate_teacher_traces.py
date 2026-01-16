@@ -46,10 +46,7 @@ def _estimate_cost(n_examples: int, cfg: TeacherConfig) -> tuple[float, float]:
     avg_in = 1500
     avg_out_direct = 100
     avg_out_reasoning = 250
-    avg_out = (
-        cfg.reasoning_share * avg_out_reasoning
-        + (1 - cfg.reasoning_share) * avg_out_direct
-    )
+    avg_out = cfg.reasoning_share * avg_out_reasoning + (1 - cfg.reasoning_share) * avg_out_direct
     per_call = avg_in * cfg.price_input_per_m / 1e6 + avg_out * cfg.price_output_per_m / 1e6
     total = per_call * cfg.n_samples * n_examples
     return total * 0.7, total * 1.4  # rough range
@@ -63,12 +60,11 @@ def main() -> int:
         type=Path,
         default=Path("configs/trace_filter.yaml"),
     )
-    parser.add_argument("--limit", type=int, default=None,
-                        help="Cap the number of train examples processed.")
-    parser.add_argument("--yes", action="store_true",
-                        help="Skip the cost-confirmation prompt.")
-    parser.add_argument("--output", type=Path,
-                        default=Path("artifacts/traces/spider_train.jsonl"))
+    parser.add_argument(
+        "--limit", type=int, default=None, help="Cap the number of train examples processed."
+    )
+    parser.add_argument("--yes", action="store_true", help="Skip the cost-confirmation prompt.")
+    parser.add_argument("--output", type=Path, default=Path("artifacts/traces/spider_train.jsonl"))
     args = parser.parse_args()
 
     load_dotenv()

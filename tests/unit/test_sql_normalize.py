@@ -59,10 +59,7 @@ def test_referenced_tables_finds_join_targets() -> None:
 
 
 def test_referenced_tables_excludes_cte_aliases() -> None:
-    sql = (
-        "WITH heavy AS (SELECT id FROM animal WHERE weight_kg > 100) "
-        "SELECT * FROM heavy"
-    )
+    sql = "WITH heavy AS (SELECT id FROM animal WHERE weight_kg > 100) SELECT * FROM heavy"
     refs = referenced_tables(sql)
     assert "animal" in refs
     assert "heavy" not in refs

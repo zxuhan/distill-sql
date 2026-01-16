@@ -16,12 +16,9 @@ Output is a list of ``Prediction`` rows ready to feed into
 from __future__ import annotations
 
 import time
-from collections.abc import Sequence
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
-from rich.console import Console
 from rich.progress import (
     BarColumn,
     MofNCompleteColumn,
@@ -45,6 +42,11 @@ from ..data.spider import (
 )
 from ..eval.runner import Prediction
 
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from pathlib import Path
+
+    from rich.console import Console
 
 # ---------------------------------------------------------------------------
 # Lazy imports of mlx so the module can be imported without mlx installed
@@ -131,7 +133,7 @@ class StudentInferer:
             {"role": "user", "content": user},
         ]
         return cast(
-            str,
+            "str",
             self._tokenizer.apply_chat_template(
                 msgs,
                 tokenize=False,
@@ -186,8 +188,7 @@ class StudentInferer:
 
         # Tokenize first so we can sort by length cheaply.
         token_lists = [
-            self._tokenizer.encode(p) if p else [self._tokenizer.eos_token_id or 0]
-            for p in prompts
+            self._tokenizer.encode(p) if p else [self._tokenizer.eos_token_id or 0] for p in prompts
         ]
         order = sorted(range(len(token_lists)), key=lambda i: len(token_lists[i]))
         ordered_tokens = [token_lists[i] for i in order]

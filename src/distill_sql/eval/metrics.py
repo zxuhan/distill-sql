@@ -8,9 +8,11 @@ in the report (overall, per-difficulty, failure-mode breakdown).
 from __future__ import annotations
 
 from collections import Counter
-from collections.abc import Iterable
 from dataclasses import asdict, dataclass
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 Difficulty = Literal["easy", "medium", "hard", "extra", "unknown"]
 FailureMode = Literal["empty", "parse", "execution", "wrong-result", "ok"]

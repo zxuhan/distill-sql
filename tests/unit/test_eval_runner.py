@@ -5,7 +5,7 @@ The official-evaluator path is covered in tests/integration/.
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -19,6 +19,9 @@ from distill_sql.eval.runner import (
     write_gold_file,
     write_pred_file,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_hardness_brackets() -> None:

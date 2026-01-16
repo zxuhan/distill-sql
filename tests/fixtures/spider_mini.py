@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # tables.json entry for one DB called ``zoo``.
 TABLES_JSON: list[dict[str, Any]] = [
@@ -58,10 +60,11 @@ EXAMPLES: list[dict[str, str]] = [
     {
         "db_id": "zoo",
         "question": "List the names of zookeepers who care for tigers.",
+        # Spider's evaluator parser requires explicit T1/T2 aliases on joins.
         "query": (
-            "SELECT z.name FROM zookeeper z "
-            "JOIN animal a ON a.keeper_id = z.id "
-            "WHERE a.species = 'tiger'"
+            "SELECT T2.name FROM animal AS T1 "
+            "JOIN zookeeper AS T2 ON T1.keeper_id = T2.id "
+            "WHERE T1.species = 'tiger'"
         ),
     },
 ]

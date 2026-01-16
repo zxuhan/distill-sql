@@ -67,10 +67,7 @@ def _difficulty_chart(results: dict, out_png: Path) -> None:
         key=lambda kv: kv[1]["exec_accuracy"],
     )
     for i, (name, summary) in enumerate(items):
-        vals = [
-            float(summary["by_difficulty"].get(d, {}).get("exec_accuracy", 0.0))
-            for d in diffs
-        ]
+        vals = [float(summary["by_difficulty"].get(d, {}).get("exec_accuracy", 0.0)) for d in diffs]
         offsets = [xi + (i - len(items) / 2) * width + width / 2 for xi in x]
         ax.bar(offsets, vals, width=width, label=name, color=palette[i % len(palette)])
     ax.set_xticks(x)
@@ -148,14 +145,20 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--results", type=Path, default=Path("reports/results.json"))
     parser.add_argument(
-        "--predictions-dir", type=Path, default=Path("reports/predictions"),
+        "--predictions-dir",
+        type=Path,
+        default=Path("reports/predictions"),
     )
     parser.add_argument("--out-md", type=Path, default=Path("reports/results.md"))
     parser.add_argument(
-        "--out-chart", type=Path, default=Path("reports/figures/exec_accuracy.png"),
+        "--out-chart",
+        type=Path,
+        default=Path("reports/figures/exec_accuracy.png"),
     )
     parser.add_argument(
-        "--out-difficulty", type=Path, default=Path("reports/figures/by_difficulty.png"),
+        "--out-difficulty",
+        type=Path,
+        default=Path("reports/figures/by_difficulty.png"),
     )
     args = parser.parse_args()
 

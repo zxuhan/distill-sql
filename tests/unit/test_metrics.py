@@ -80,9 +80,9 @@ def test_summarize_failure_breakdown_counts() -> None:
 )
 def test_classify_failure_buckets(
     pred: str,
-    parses: bool,  # noqa: FBT001 — parametrized arg, not API
-    executes: bool,  # noqa: FBT001
-    exec_match: bool,  # noqa: FBT001
+    parses: bool,
+    executes: bool,
+    exec_match: bool,
     expected: str,
 ) -> None:
     out = classify_failure(pred, parses=parses, executes=executes, exec_match=exec_match)

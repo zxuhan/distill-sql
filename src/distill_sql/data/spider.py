@@ -15,10 +15,13 @@ import re
 import sqlite3
 from collections import Counter
 from dataclasses import dataclass, field
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from .._compat import readable_path
 from ..config import SchemaSerializerConfig
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # Domain types
@@ -202,7 +205,7 @@ def sample_rows(
     """Fetch up to ``n`` sample rows from ``table``, with each cell stringified."""
     cur = conn.cursor()
     try:
-        cur.execute(f'SELECT * FROM "{table}" LIMIT {int(n)}')  # noqa: S608
+        cur.execute(f'SELECT * FROM "{table}" LIMIT {int(n)}')
     except sqlite3.Error:
         return []
     rows = cur.fetchall()
@@ -241,7 +244,7 @@ def render_table_create(
 ) -> str:
     """Produce a CREATE TABLE statement in SQLite dialect."""
     if not table.columns:
-        return f'CREATE TABLE {_quote_ident(table.name)} ();'
+        return f"CREATE TABLE {_quote_ident(table.name)} ();"
     lines: list[str] = []
     for col in table.columns:
         lines.append(col.render_create() + ",")
@@ -267,7 +270,10 @@ def render_sample_rows_block(
     headers = list(table.column_names())
     cols = [headers, *[list(r) for r in rows]]
     widths = [max(len(c[i]) for c in cols) for i in range(len(headers))]
-    fmt_row = lambda row: "  ".join(c.ljust(w) for c, w in zip(row, widths, strict=True))
+
+    def fmt_row(row):
+        return "  ".join(c.ljust(w) for c, w in zip(row, widths, strict=True))
+
     out_lines = ["/* sample rows:", "  " + fmt_row(headers)]
     for r in rows:
         out_lines.append("  " + fmt_row(list(r)))
@@ -394,8 +400,7 @@ class SchemaSerializer:
                         )
 
         sample_text_for_bm25 = {
-            i: " ".join(c for r in rows for c in r)
-            for i, rows in sample_rows_per_table.items()
+            i: " ".join(c for r in rows for c in r) for i, rows in sample_rows_per_table.items()
         }
         keep_indices = self._rank_tables(schema, question, sample_text_for_bm25)
 
@@ -479,9 +484,7 @@ class SchemaSerializer:
         for i in indices:
             t = schema.tables[i]
             fks_here = [
-                fk
-                for fk in schema.foreign_keys
-                if fk.from_table == i and fk.to_table in index_set
+                fk for fk in schema.foreign_keys if fk.from_table == i and fk.to_table in index_set
             ]
             parts.append(render_table_create(t, fks_here, schema))
             if self.cfg.include_sample_rows and i in sample_text:

@@ -75,10 +75,7 @@ def test_extract_sql_returns_none_on_garbage() -> None:
 
 
 def test_split_reasoning_and_sql_returns_both_when_present() -> None:
-    completion = (
-        "First, find the joins.\n"
-        f"{SQL_FENCE_OPEN}\nSELECT 1\n{SQL_FENCE_CLOSE}\n"
-    )
+    completion = f"First, find the joins.\n{SQL_FENCE_OPEN}\nSELECT 1\n{SQL_FENCE_CLOSE}\n"
     reasoning, sql = split_reasoning_and_sql(completion)
     assert reasoning is not None and "joins" in reasoning.lower()
     assert sql == "SELECT 1"

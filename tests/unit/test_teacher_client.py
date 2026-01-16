@@ -7,7 +7,7 @@ monkey-patching the ``AsyncOpenAI`` instance on the client.
 from __future__ import annotations
 
 import asyncio
-from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -26,6 +26,9 @@ from distill_sql.teacher.client import (
     build_teacher_messages,
     request_dict,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _req(model: str = "gpt-4o-mini", text: str = "hi", idx: int = 0) -> CompletionRequest:

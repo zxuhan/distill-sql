@@ -8,10 +8,8 @@ into the same eval runner the student uses.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Sequence
-from pathlib import Path
+from typing import TYPE_CHECKING
 
-from rich.console import Console
 from rich.progress import (
     BarColumn,
     MofNCompleteColumn,
@@ -36,6 +34,12 @@ from .client import (
     CompletionRequest,
     TeacherClient,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from pathlib import Path
+
+    from rich.console import Console
 
 
 async def run_openai_reference(

@@ -34,7 +34,9 @@ _REASONING_PREFIX: Final[str] = (
     "needs and any joins or aggregations involved. Then output the final SQL "
     "in a fenced ```sql block."
 )
-_DIRECT_PREFIX: Final[str] = "Output the final SQL in a fenced ```sql block. Do not include any other text."
+_DIRECT_PREFIX: Final[str] = (
+    "Output the final SQL in a fenced ```sql block. Do not include any other text."
+)
 
 PromptMode = Literal["direct", "reasoning"]
 

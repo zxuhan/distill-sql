@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -22,6 +22,9 @@ from distill_sql.data.spider import (
     open_db,
     sample_rows,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_load_tables_resolves_columns_and_pk(spider_mini_root: Path) -> None:
@@ -66,9 +69,8 @@ def test_open_db_is_read_only(spider_mini_root: Path) -> None:
     conn2 = open_db(spider_mini_root / "database", "zoo")
     import sqlite3 as _sqlite3
 
-    with pytest.raises(_sqlite3.Error):
-        with conn2:
-            conn2.execute("INSERT INTO animal VALUES (99, 'wolf', 30.0, 1)")
+    with pytest.raises(_sqlite3.Error), conn2:
+        conn2.execute("INSERT INTO animal VALUES (99, 'wolf', 30.0, 1)")
 
 
 def test_open_db_missing_db_raises(spider_mini_root: Path) -> None:
@@ -177,7 +179,9 @@ def test_serializer_keeps_fk_closure() -> None:
             SpiderForeignKey(from_table=1, from_column="user_id", to_table=0, to_column="id"),
         ),
     )
-    cfg = SchemaSerializerConfig(include_sample_rows=False, max_tokens=10, min_tables_kept=1, tokens_per_char=1.0)
+    cfg = SchemaSerializerConfig(
+        include_sample_rows=False, max_tokens=10, min_tables_kept=1, tokens_per_char=1.0
+    )
     ser = SchemaSerializer(cfg)
     out = ser.serialize(s, "list users")
     # Even though the budget is tiny, the FK closure is invoked and ``users``

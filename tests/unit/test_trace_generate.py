@@ -6,7 +6,7 @@ the pipeline runs end-to-end without network access.
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -34,6 +34,9 @@ from distill_sql.teacher.generate import (
     write_stats,
     write_traces,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_assign_modes_obeys_share() -> None:
@@ -169,7 +172,8 @@ def test_build_request_uses_correct_token_budget_per_mode() -> None:
 
     ex = SpiderExample(db_id="x", question="how many?", query="SELECT 1", question_id=0)
     block = SchemaSerializer(SchemaSerializerConfig(include_sample_rows=False)).serialize(
-        schema, ex.question,
+        schema,
+        ex.question,
     )
     direct_req = _build_request(ex, block, "direct", cfg, sample_index=0)
     reasoning_req = _build_request(ex, block, "reasoning", cfg, sample_index=0)
@@ -200,11 +204,14 @@ async def test_generate_traces_end_to_end_with_stub(spider_mini_root: Path) -> N
             req = CompletionRequest(
                 model=teacher_cfg.model,
                 messages=(
-                    ChatMessage("system", "You are an expert SQL writer. "
-                                "Given an SQLite schema and a natural-language "
-                                "question, produce a single SQLite query that "
-                                "answers the question. Use only tables and "
-                                "columns that appear in the provided schema."),
+                    ChatMessage(
+                        "system",
+                        "You are an expert SQL writer. "
+                        "Given an SQLite schema and a natural-language "
+                        "question, produce a single SQLite query that "
+                        "answers the question. Use only tables and "
+                        "columns that appear in the provided schema.",
+                    ),
                     ChatMessage("user", user),
                 ),
                 temperature=teacher_cfg.temperature,
@@ -215,7 +222,7 @@ async def test_generate_traces_end_to_end_with_stub(spider_mini_root: Path) -> N
             # validates self-consistency picks the right one.
             sql = ex.query if sample_index == 1 else "SELECT 'wrong'"
             responses[req.cache_key()] = f"```sql\n{sql}\n```"
-        del ex_idx  # noqa
+        del ex_idx
 
     client = StubTeacherClient(responses)
     out: GenerateOutput = await generate_traces(

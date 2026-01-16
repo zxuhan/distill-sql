@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from distill_sql.sql.validate import (
     check_executes,
     check_parses,
     check_table_grounded,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_check_parses_passes_on_valid_sql() -> None:

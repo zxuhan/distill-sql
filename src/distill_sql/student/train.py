@@ -14,13 +14,11 @@ import json
 import logging
 import random
 import time
-from pathlib import Path
 from types import SimpleNamespace
-from typing import Iterable
+from typing import TYPE_CHECKING
 
 from rich.console import Console
 
-from ..config import TrainConfig
 from ..data.prompts import (
     SQL_FENCE_CLOSE,
     SQL_FENCE_OPEN,
@@ -28,6 +26,12 @@ from ..data.prompts import (
     build_user_prompt,
 )
 from .utils import setup_run_logging
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from pathlib import Path
+
+    from ..config import TrainConfig
 
 console = Console()
 log = logging.getLogger("distill_sql.train")
@@ -240,8 +244,12 @@ def train(cfg: TrainConfig) -> Path:
     (run_dir / "args.json").write_text(json.dumps(args.__dict__, indent=2, default=str))
 
     cb = _RichTrainingCallback(run_dir)
-    log.info("starting LoRA training, iters=%d batch_size=%d grad_accum=%d",
-             args.iters, args.batch_size, args.grad_accumulation_steps)
+    log.info(
+        "starting LoRA training, iters=%d batch_size=%d grad_accum=%d",
+        args.iters,
+        args.batch_size,
+        args.grad_accumulation_steps,
+    )
 
     lora_run(args, training_callback=cb)
     log.info("training complete; adapter saved at %s", adapter_dir)

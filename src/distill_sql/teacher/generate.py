@@ -22,12 +22,9 @@ import json
 import random
 import sqlite3
 from collections import Counter
-from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Any, Protocol, cast
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
-from rich.console import Console
 from rich.progress import (
     BarColumn,
     MofNCompleteColumn,
@@ -37,7 +34,6 @@ from rich.progress import (
     TimeRemainingColumn,
 )
 
-from ..config import TeacherConfig, TraceFilterConfig
 from ..data.prompts import (
     SYSTEM_PROMPT,
     PromptMode,
@@ -58,6 +54,13 @@ from .client import (
     CompletionResponse,
 )
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
+    from pathlib import Path
+
+    from rich.console import Console
+
+    from ..config import TeacherConfig, TraceFilterConfig
 
 # ---------------------------------------------------------------------------
 # Protocol so tests can substitute the stub client.
@@ -175,10 +178,10 @@ def _assign_modes(
     rng = random.Random(seed)
     indices = list(range(len(examples)))
     rng.shuffle(indices)
-    n_reasoning = int(round(cfg.reasoning_share * len(examples)))
+    n_reasoning = round(cfg.reasoning_share * len(examples))
     reasoning_set = set(indices[:n_reasoning])
     return {
-        i: cast(PromptMode, "reasoning" if i in reasoning_set else "direct")
+        i: cast("PromptMode", "reasoning" if i in reasoning_set else "direct")
         for i in range(len(examples))
     }
 
@@ -191,9 +194,7 @@ def _build_request(
     sample_index: int,
 ) -> CompletionRequest:
     user = build_user_prompt(schema_block, example.question, mode)
-    max_tokens = (
-        cfg.max_tokens_reasoning if mode == "reasoning" else cfg.max_tokens_direct
-    )
+    max_tokens = cfg.max_tokens_reasoning if mode == "reasoning" else cfg.max_tokens_direct
     return CompletionRequest(
         model=cfg.model,
         messages=(
@@ -285,7 +286,7 @@ class GenerateOutput:
     stats: GenerationStats
 
 
-async def generate_traces(  # noqa: PLR0915, C901, PLR0912 - top-level orchestrator
+async def generate_traces(  # noqa: PLR0915 - top-level orchestrator
     examples: Sequence[SpiderExample],
     schemas: dict[str, SpiderSchema],
     db_dir: Path,

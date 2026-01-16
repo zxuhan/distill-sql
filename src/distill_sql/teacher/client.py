@@ -12,15 +12,12 @@ import asyncio
 import hashlib
 import json
 import time
-from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import httpx
 from openai import (
     APIConnectionError,
-    APIError,
     AsyncOpenAI,
     InternalServerError,
     RateLimitError,
@@ -32,7 +29,11 @@ from tenacity import (
     wait_random_exponential,
 )
 
-from ..config import TeacherConfig
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
+    from pathlib import Path
+
+    from ..config import TeacherConfig
 
 # ---------------------------------------------------------------------------
 # Domain types
@@ -69,8 +70,7 @@ class CompletionRequest:
             "max_tokens": self.max_tokens,
             "sample_index": self.sample_index,
         }
-        h = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
-        return h
+        return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
 
 @dataclass(frozen=True)

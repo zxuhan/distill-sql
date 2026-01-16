@@ -7,11 +7,14 @@ statistics. Reasons are short identifiers, suitable for grouping.
 from __future__ import annotations
 
 import sqlite3
-from collections.abc import Iterable
 from dataclasses import dataclass
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from .normalize import parses, referenced_tables
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from pathlib import Path
 
 
 @dataclass(frozen=True)

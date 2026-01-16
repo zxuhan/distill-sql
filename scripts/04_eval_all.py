@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
 import os
 import sys
 from pathlib import Path
@@ -21,7 +20,6 @@ from distill_sql.config import (
 from distill_sql.data.spider import load_examples, load_tables
 from distill_sql.eval.compare import RunResult, render_markdown_table, write_results_json
 from distill_sql.eval.runner import (
-    Prediction,
     evaluate_predictions,
     run_official_evaluator,
     write_predictions_jsonl,
@@ -90,8 +88,7 @@ def _eval_one(
             etype="all",
         )
         console.log(
-            f"[official]   exec_acc={official.exec_all:.3f} "
-            f"em_acc={official.em_all:.3f}",
+            f"[official]   exec_acc={official.exec_all:.3f} em_acc={official.em_all:.3f}",
         )
         # Replace the in-process numbers with the official ones for the
         # report; keep per-difficulty from in-process for failure analysis.
@@ -143,8 +140,9 @@ def _eval_one(
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=Path, required=True)
-    parser.add_argument("--limit", type=int, default=None,
-                        help="Override limit from config (for fast smoke runs).")
+    parser.add_argument(
+        "--limit", type=int, default=None, help="Override limit from config (for fast smoke runs)."
+    )
     args = parser.parse_args()
 
     load_dotenv()

@@ -12,12 +12,12 @@ from pathlib import Path
 
 import pytest
 
+from distill_sql.data.spider import load_examples
 from distill_sql.eval.runner import (
     Prediction,
     parse_official_output,
     run_official_evaluator,
 )
-from distill_sql.data.spider import load_examples
 
 
 @pytest.mark.integration
@@ -41,7 +41,7 @@ def test_gold_predictions_score_perfect(spider_mini_root: Path) -> None:
 
 def test_parse_output_grammar() -> None:
     sample = (
-        "                    easy                medium              hard                extra               all\n"  # noqa: E501
+        "                    easy                medium              hard                extra               all\n"
         "count               2                   1                   0                   0                   3\n"
         "=====================   EXECUTION ACCURACY     =====================\n"
         "execution           1.000               0.500               0.000               0.000               0.833\n"

@@ -7,11 +7,14 @@ turns several of them into the table that goes into ``reports/results.md``.
 from __future__ import annotations
 
 import json
-from collections.abc import Iterable
 from dataclasses import dataclass
-from pathlib import Path
+from typing import TYPE_CHECKING
 
-from .metrics import MetricsSummary
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from pathlib import Path
+
+    from .metrics import MetricsSummary
 
 
 @dataclass(frozen=True)
@@ -49,9 +52,7 @@ def write_results_json(runs: Iterable[RunResult], out_path: Path) -> None:
     payload = {
         r.name: {
             "summary": r.summary.as_dict(),
-            "predictions_path": (
-                str(r.predictions_path) if r.predictions_path else None
-            ),
+            "predictions_path": (str(r.predictions_path) if r.predictions_path else None),
         }
         for r in runs
     }
