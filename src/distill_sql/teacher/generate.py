@@ -300,6 +300,10 @@ async def generate_traces(  # noqa: PLR0915 - top-level orchestrator
 ) -> GenerateOutput:
     """Drive the full generate-validate-filter loop.
 
+    Examples are processed in parallel up to ``teacher_cfg.concurrency``
+    in-flight examples. Per-example, we still issue ``n_samples`` requests,
+    relying on the client's semaphore to gate total concurrent requests.
+
     ``client`` is duck-typed so tests can pass a ``StubTeacherClient``.
     """
     serializer = serializer or SchemaSerializer()
@@ -329,84 +333,101 @@ async def generate_traces(  # noqa: PLR0915 - top-level orchestrator
     )
     task_id = progress.add_task("gen", total=len(examples), kept=0, drop=0, cost=0.0)
 
-    with progress:
-        for ex_idx, example in enumerate(examples):
-            if example.db_id not in db_paths:
-                db_paths[example.db_id] = db_dir / example.db_id / f"{example.db_id}.sqlite"
-            db_path = db_paths[example.db_id]
+    # Limit how many examples we process in parallel. The TeacherClient has its
+    # own request semaphore; we don't want more in-flight examples than will
+    # comfortably fit within the request concurrency cap.
+    parallel = max(1, teacher_cfg.concurrency // max(teacher_cfg.n_samples, 1))
+    sem = asyncio.Semaphore(parallel)
 
-            cache_key = (example.db_id, example.query.strip())
-            if cache_key not in gold_cache:
-                gold_cache[cache_key] = _execute(
-                    db_path,
-                    example.query,
-                    timeout_s=filter_cfg.execution_timeout_s,
-                )
-            gold_rows = gold_cache[cache_key]
-            if gold_rows is None and filter_cfg.require_matches_gold:
-                drop_reasons["gold-failed"] += 1
-                progress.update(task_id, advance=1, drop=sum(drop_reasons.values()))
-                continue
+    # Hoist schema-tables/serialized-block prep outside the lock since it's
+    # CPU-bound but cheap, and we need it before the network call.
+    async def process_example(  # noqa: PLR0911 - small flat orchestrator
+        ex_idx: int,
+        example: SpiderExample,
+    ) -> tuple[TraceRecord | None, str | None, list[TraceCandidate]]:
+        if example.db_id not in db_paths:
+            db_paths[example.db_id] = db_dir / example.db_id / f"{example.db_id}.sqlite"
+        db_path = db_paths[example.db_id]
 
-            schema = schemas.get(example.db_id)
-            if schema is None:
-                drop_reasons["missing-schema"] += 1
-                progress.update(task_id, advance=1, drop=sum(drop_reasons.values()))
-                continue
-
-            schema_block = serializer.serialize(
-                schema,
-                example.question,
-                db_root=db_dir,
+        cache_key = (example.db_id, example.query.strip())
+        if cache_key not in gold_cache:
+            gold_cache[cache_key] = _execute(
+                db_path,
+                example.query,
+                timeout_s=filter_cfg.execution_timeout_s,
             )
-            mode = modes[ex_idx]
+        gold_rows = gold_cache[cache_key]
+        if gold_rows is None and filter_cfg.require_matches_gold:
+            return None, "gold-failed", []
 
-            requests = [
-                _build_request(example, schema_block, mode, teacher_cfg, sample_index=i)
-                for i in range(teacher_cfg.n_samples)
-            ]
+        schema = schemas.get(example.db_id)
+        if schema is None:
+            return None, "missing-schema", []
+
+        schema_block = serializer.serialize(
+            schema,
+            example.question,
+            db_root=db_dir,
+        )
+        mode = modes[ex_idx]
+        requests = [
+            _build_request(example, schema_block, mode, teacher_cfg, sample_index=i)
+            for i in range(teacher_cfg.n_samples)
+        ]
+        async with sem:
+            responses = await client.gather(requests)
+
+        schema_tables = {t.name.lower() for t in schema.tables}
+        candidates = [
+            _candidate_from_response(
+                i,
+                rsp,
+                db_path,
+                gold_rows,
+                filter_cfg.execution_timeout_s,
+            )
+            for i, rsp in enumerate(responses)
+        ]
+        chosen, reason = _select_candidate(candidates, filter_cfg, schema_tables)
+        if chosen is None:
+            return None, reason or "unknown", candidates
+
+        sql = chosen.sql or ""
+        record = TraceRecord(
+            question_id=example.question_id or ex_idx,
+            db_id=example.db_id,
+            question=example.question,
+            schema_block=schema_block,
+            mode=mode,
+            sql=canonicalize(sql) or sql.strip().rstrip(";"),
+            reasoning=chosen.reasoning if mode == "reasoning" else None,
+            gold_sql=example.query,
+            n_candidates=len(candidates),
+            matched_gold=chosen.matches_gold,
+        )
+        return record, None, candidates
+
+    with progress:
+        tasks = [
+            asyncio.create_task(process_example(i, ex))
+            for i, ex in enumerate(examples)
+        ]
+        for done in asyncio.as_completed(tasks):
             try:
-                responses = await client.gather(requests)
+                record, reason, candidates = await done
             except BudgetExceededError as exc:
                 progress.console.log(f"[red]budget exceeded[/]: {exc}")
+                for t in tasks:
+                    t.cancel()
                 break
-
-            schema_tables = {t.name.lower() for t in schema.tables}
-            candidates = [
-                _candidate_from_response(
-                    i,
-                    rsp,
-                    db_path,
-                    gold_rows,
-                    filter_cfg.execution_timeout_s,
-                )
-                for i, rsp in enumerate(responses)
-            ]
             cand_total += len(candidates)
             cand_parse += sum(1 for c in candidates if c.parses_ok)
             cand_exec += sum(1 for c in candidates if c.executes_ok)
             cand_match += sum(1 for c in candidates if c.matches_gold)
-
-            chosen, reason = _select_candidate(candidates, filter_cfg, schema_tables)
-            if chosen is None:
+            if record is None:
                 drop_reasons[reason or "unknown"] += 1
             else:
-                # Normalize whitespace; preserve original casing semantics.
-                sql = chosen.sql or ""
-                kept.append(
-                    TraceRecord(
-                        question_id=example.question_id or ex_idx,
-                        db_id=example.db_id,
-                        question=example.question,
-                        schema_block=schema_block,
-                        mode=mode,
-                        sql=canonicalize(sql) or sql.strip().rstrip(";"),
-                        reasoning=chosen.reasoning if mode == "reasoning" else None,
-                        gold_sql=example.query,
-                        n_candidates=len(candidates),
-                        matched_gold=chosen.matches_gold,
-                    ),
-                )
+                kept.append(record)
             progress.update(
                 task_id,
                 advance=1,

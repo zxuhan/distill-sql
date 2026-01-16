@@ -9,7 +9,7 @@ n_samples: 3
 max_tokens_direct: 256
 max_tokens_reasoning: 512
 reasoning_share: 0.4
-concurrency: 12
+concurrency: 24
 request_timeout_s: 60.0
 max_retries: 5
 cache_dir: artifacts/cache/teacher

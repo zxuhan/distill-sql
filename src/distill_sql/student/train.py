@@ -121,10 +121,11 @@ class _RichTrainingCallback:
 
     def on_train_loss_report(self, info: dict) -> None:
         info["wall_s"] = round(time.time() - self._t0, 2)
+        info["kind"] = "train"
         self._fh.write(json.dumps(info) + "\n")
         self._fh.flush()
-        loss = info.get("train_loss", info.get("loss"))
-        step = info.get("iter") or info.get("step")
+        loss = info.get("train_loss")
+        step = info.get("iteration")
         if loss is not None and step is not None:
             tps = info.get("tokens_per_second")
             extra = f" tps={tps:.1f}" if isinstance(tps, (int, float)) else ""
@@ -136,7 +137,7 @@ class _RichTrainingCallback:
         self._fh.write(json.dumps(info) + "\n")
         self._fh.flush()
         loss = info.get("val_loss")
-        step = info.get("iter") or info.get("step")
+        step = info.get("iteration")
         if loss is not None:
             console.log(f"[bold]eval[/] step {step}  val_loss={loss:.4f}")
 
@@ -218,8 +219,17 @@ def _build_lora_args(
 
 
 def train(cfg: TrainConfig) -> Path:
-    """Run a full LoRA training job and return the adapter directory."""
-    from mlx_lm.lora import run as lora_run
+    """Run a full LoRA training job and return the adapter directory.
+
+    We bypass ``mlx_lm.lora.run`` because that helper overwrites any
+    caller-passed ``training_callback`` with one built from
+    ``args.report_to``. Replicating its load + dataset + ``train_model``
+    sequence inline keeps our callback in the loop so the metrics JSONL
+    we write actually has rows in it.
+    """
+    # Lazy imports: mlx is heavy; importing it at module load slows imports
+    # in non-training paths (CLI, tests, lints).
+    from mlx_lm.lora import load, load_dataset, train_model
 
     run_dir = cfg.output_dir / cfg.run_name
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -251,7 +261,11 @@ def train(cfg: TrainConfig) -> Path:
         args.grad_accumulation_steps,
     )
 
-    lora_run(args, training_callback=cb)
+    log.info("loading model %s", cfg.base.model_id)
+    model, tokenizer = load(cfg.base.model_id, tokenizer_config={"trust_remote_code": True})
+    train_set, valid_set, _ = load_dataset(args, tokenizer)
+    log.info("training: %d train batches, %d val batches", len(train_set), len(valid_set))
+    train_model(args, model, train_set, valid_set, training_callback=cb)
     log.info("training complete; adapter saved at %s", adapter_dir)
 
     # Write a manifest the eval script can read.
