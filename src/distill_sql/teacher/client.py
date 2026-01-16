@@ -267,10 +267,16 @@ class TeacherClient:
         self,
         req: CompletionRequest,
     ) -> tuple[str, int, int, str | None]:
-        """Single-request path with tenacity retries on transient OpenAI errors."""
+        """Single-request path with tenacity retries on transient OpenAI errors.
+
+        Wait between retries: exponential up to 60s with jitter. Tier-1 TPM
+        limits typically reset within a few seconds, so the upper bound
+        rarely matters; the jitter helps avoid synchronized retry storms
+        across concurrent workers.
+        """
         retry = AsyncRetrying(
             stop=stop_after_attempt(self.cfg.max_retries),
-            wait=wait_random_exponential(min=1, max=30),
+            wait=wait_random_exponential(multiplier=1.0, min=2, max=60),
             retry=retry_if_exception_type(_RETRY_EXCEPTIONS),
             reraise=True,
         )

@@ -408,10 +408,7 @@ async def generate_traces(  # noqa: PLR0915 - top-level orchestrator
         return record, None, candidates
 
     with progress:
-        tasks = [
-            asyncio.create_task(process_example(i, ex))
-            for i, ex in enumerate(examples)
-        ]
+        tasks = [asyncio.create_task(process_example(i, ex)) for i, ex in enumerate(examples)]
         for done in asyncio.as_completed(tasks):
             try:
                 record, reason, candidates = await done
@@ -420,6 +417,19 @@ async def generate_traces(  # noqa: PLR0915 - top-level orchestrator
                 for t in tasks:
                     t.cancel()
                 break
+            except Exception as exc:  # noqa: BLE001 — log and skip this example
+                # API errors (RateLimitError, APIConnectionError) that exhausted
+                # retries shouldn't tank the whole run; just record and keep
+                # going so the cache fills with successes.
+                progress.console.log(f"[yellow]example failed[/]: {type(exc).__name__}: {exc}")
+                drop_reasons[f"api-{type(exc).__name__}"] += 1
+                progress.update(
+                    task_id,
+                    advance=1,
+                    drop=sum(drop_reasons.values()),
+                    cost=teacher_cfg.max_spend_usd - client.remaining_budget(),
+                )
+                continue
             cand_total += len(candidates)
             cand_parse += sum(1 for c in candidates if c.parses_ok)
             cand_exec += sum(1 for c in candidates if c.executes_ok)
