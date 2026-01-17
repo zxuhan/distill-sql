@@ -18,7 +18,9 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-def _row(qid: int, *, exec_match: bool, gold: str, pred: str, failure: str = "ok") -> dict:
+def _row(
+    qid: int, *, exec_match: bool, gold: str, pred: str, failure: str = "ok",
+) -> dict[str, object]:
     return {
         "question_id": qid,
         "db_id": "zoo",
@@ -31,7 +33,7 @@ def _row(qid: int, *, exec_match: bool, gold: str, pred: str, failure: str = "ok
     }
 
 
-def _write(path: Path, rows: list[dict]) -> None:
+def _write(path: Path, rows: list[dict[str, object]]) -> None:
     with path.open("w") as f:
         for r in rows:
             f.write(json.dumps(r) + "\n")

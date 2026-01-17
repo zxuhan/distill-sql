@@ -11,7 +11,7 @@ import json
 import re
 from collections import Counter
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -80,9 +80,9 @@ def _category(gold: str, pred: str, failure: str) -> str:
     return "other"
 
 
-def load_predictions(path: Path) -> list[dict]:
+def load_predictions(path: Path) -> list[dict[str, Any]]:
     """Read a per-example predictions JSONL written by eval/runner.py."""
-    out: list[dict] = []
+    out: list[dict[str, Any]] = []
     with path.open() as f:
         for raw in f:
             raw = raw.strip()

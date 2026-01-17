@@ -38,8 +38,8 @@ def test_hardness_brackets() -> None:
 
 
 def test_multisets_equal_handles_nulls_and_ordering() -> None:
-    a = [(1, "tiger"), (2, "lion"), (3, None)]
-    b = [(3, None), (2, "lion"), (1, "tiger")]
+    a: list[tuple[object, ...]] = [(1, "tiger"), (2, "lion"), (3, None)]
+    b: list[tuple[object, ...]] = [(3, None), (2, "lion"), (1, "tiger")]
     assert _multisets_equal(a, b)
     assert not _multisets_equal(a, a + a)
 

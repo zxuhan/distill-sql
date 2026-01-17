@@ -231,7 +231,7 @@ async def test_generate_traces_end_to_end_with_stub(spider_mini_root: Path) -> N
         spider_mini_root / "database",
         teacher_cfg,
         filter_cfg,
-        client=client,  # type: ignore[arg-type]
+        client=client,
         serializer=serializer,
     )
     assert out.stats.examples_kept == len(examples)
@@ -266,7 +266,7 @@ async def test_generate_traces_drops_when_all_candidates_fail(
         spider_mini_root / "database",
         teacher_cfg,
         filter_cfg,
-        client=client,  # type: ignore[arg-type]
+        client=client,
     )
     assert out.stats.examples_kept == 0
     assert out.stats.examples_dropped == len(examples)

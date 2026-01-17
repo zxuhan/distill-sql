@@ -271,7 +271,7 @@ def render_sample_rows_block(
     cols = [headers, *[list(r) for r in rows]]
     widths = [max(len(c[i]) for c in cols) for i in range(len(headers))]
 
-    def fmt_row(row):
+    def fmt_row(row: list[str]) -> str:
         return "  ".join(c.ljust(w) for c, w in zip(row, widths, strict=True))
 
     out_lines = ["/* sample rows:", "  " + fmt_row(headers)]

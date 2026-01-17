@@ -284,7 +284,7 @@ class TeacherClient:
             with attempt:
                 resp = await self._client.chat.completions.create(
                     model=req.model,
-                    messages=[m.as_dict() for m in req.messages],  # type: ignore[arg-type]
+                    messages=[m.as_dict() for m in req.messages],  # type: ignore[misc]
                     temperature=req.temperature,
                     max_tokens=req.max_tokens,
                     n=1,

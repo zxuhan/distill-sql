@@ -116,7 +116,7 @@ def extract_sql(completion: str) -> str | None:
     We use the *last* block because reasoning-mode answers sometimes show
     intermediate scratch SQL fragments before the final answer.
     """
-    matches = _FENCE_RE.findall(completion)
+    matches: list[str] = _FENCE_RE.findall(completion)
     if not matches:
         # Fallback: if the model just emitted bare SQL, take the whole thing
         # if it parses syntactically as a SELECT-shaped statement.

@@ -75,7 +75,9 @@ def summarize(results: Iterable[PerExampleResult]) -> MetricsSummary:
             "exact_match_accuracy": sum(1 for r in bucket if r.exact_set_match) / bn,
         }
 
-    failure_breakdown = dict(Counter(r.failure_mode for r in items))
+    failure_breakdown: dict[str, int] = {
+        str(k): v for k, v in Counter(r.failure_mode for r in items).items()
+    }
 
     return MetricsSummary(
         n=n,

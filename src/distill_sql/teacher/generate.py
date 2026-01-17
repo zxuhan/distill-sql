@@ -23,7 +23,7 @@ import random
 import sqlite3
 from collections import Counter
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Protocol, cast
+from typing import TYPE_CHECKING, Any, Protocol
 
 from rich.progress import (
     BarColumn,
@@ -181,7 +181,7 @@ def _assign_modes(
     n_reasoning = round(cfg.reasoning_share * len(examples))
     reasoning_set = set(indices[:n_reasoning])
     return {
-        i: cast("PromptMode", "reasoning" if i in reasoning_set else "direct")
+        i: ("reasoning" if i in reasoning_set else "direct")
         for i in range(len(examples))
     }
 
@@ -218,7 +218,7 @@ def _candidate_from_response(
     reasoning, sql = split_reasoning_and_sql(text)
     if sql is None:
         sql = extract_sql(text)
-    parses_ok = bool(sql) and parses(sql)
+    parses_ok = sql is not None and parses(sql)
     pred_rows: list[tuple[Any, ...]] | None = None
     if parses_ok:
         pred_rows = _execute(db_path, sql or "", timeout_s=timeout_s)
@@ -341,7 +341,7 @@ async def generate_traces(  # noqa: PLR0915 - top-level orchestrator
 
     # Hoist schema-tables/serialized-block prep outside the lock since it's
     # CPU-bound but cheap, and we need it before the network call.
-    async def process_example(  # noqa: PLR0911 - small flat orchestrator
+    async def process_example(
         ex_idx: int,
         example: SpiderExample,
     ) -> tuple[TraceRecord | None, str | None, list[TraceCandidate]]:
@@ -417,7 +417,7 @@ async def generate_traces(  # noqa: PLR0915 - top-level orchestrator
                 for t in tasks:
                     t.cancel()
                 break
-            except Exception as exc:  # noqa: BLE001 — log and skip this example
+            except Exception as exc:
                 # API errors (RateLimitError, APIConnectionError) that exhausted
                 # retries shouldn't tank the whole run; just record and keep
                 # going so the cache fills with successes.

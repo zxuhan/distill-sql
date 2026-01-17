@@ -9,10 +9,10 @@ n_samples: 3
 max_tokens_direct: 256
 max_tokens_reasoning: 512
 reasoning_share: 0.4
-# Tier-1 OpenAI accounts have a 200K TPM cap on gpt-4o-mini. With ~3K tokens
-# per call and a 200K limit, we can sustain roughly 4-5 concurrent calls
-# without hitting 429s. Tenacity retries cover the residual.
-concurrency: 4
+# Tier-1 OpenAI accounts have a 200K TPM cap on gpt-4o-mini. With ~1K tokens
+# per call (most schemas fit comfortably) we can sustain ~8 concurrent calls
+# while staying under the cap; tenacity covers any residual 429s.
+concurrency: 8
 request_timeout_s: 90.0
 max_retries: 10
 cache_dir: artifacts/cache/teacher

@@ -58,8 +58,11 @@ def _load_mlx() -> tuple[Any, Any, Any, Any]:
     from mlx_lm import generate, load
     from mlx_lm.sample_utils import make_sampler
 
+    batch_generate: Any = None
     try:
-        from mlx_lm import batch_generate
+        from mlx_lm import batch_generate as _bg
+
+        batch_generate = _bg
     except ImportError:  # very old mlx-lm
         batch_generate = None
     return load, generate, batch_generate, make_sampler

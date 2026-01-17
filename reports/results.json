@@ -1,0 +1,39 @@
+{
+  "base_qwen_0p5b": {
+    "summary": {
+      "n": 1034,
+      "exec_accuracy": 0.339,
+      "exact_match_accuracy": 0.087,
+      "by_difficulty": {
+        "easy": {
+          "n": 368.0,
+          "exec_accuracy": 0.508,
+          "exact_match_accuracy": 0.153
+        },
+        "medium": {
+          "n": 431.0,
+          "exec_accuracy": 0.361,
+          "exact_match_accuracy": 0.092
+        },
+        "hard": {
+          "n": 182.0,
+          "exec_accuracy": 0.224,
+          "exact_match_accuracy": 0.052
+        },
+        "extra": {
+          "n": 53.0,
+          "exec_accuracy": 0.151,
+          "exact_match_accuracy": 0.012
+        }
+      },
+      "failure_breakdown": {
+        "ok": 329,
+        "wrong-result": 283,
+        "execution": 404,
+        "empty": 17,
+        "parse": 1
+      }
+    },
+    "predictions_path": "reports/predictions/base_qwen_0p5b.jsonl"
+  }
+}
