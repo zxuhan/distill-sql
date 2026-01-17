@@ -141,6 +141,45 @@ def _failure_breakdown_md(predictions_dir: Path, model_names: list[str]) -> str:
     return "\n".join(out)
 
 
+def _build_error_analysis_section(
+    results: dict,
+    predictions_dir: Path,
+    examples_path: Path,
+) -> str:
+    """Build the student-vs-teacher disagreement section, if both are present."""
+    from distill_sql.eval.error_analysis import (
+        find_disagreements,
+        render_error_analysis_md,
+    )
+
+    student_name = next(
+        (n for n in results if n.startswith("distilled_") and "primary" in n),
+        None,
+    )
+    teacher_name = next(
+        (n for n in results if "openai" in n.lower() or "gpt" in n.lower() or "reference" in n),
+        None,
+    )
+    if not (student_name and teacher_name):
+        return ""
+
+    a = predictions_dir / f"{student_name}.jsonl"
+    b = predictions_dir / f"{teacher_name}.jsonl"
+    if not a.exists() or not b.exists():
+        return ""
+    cases = find_disagreements(a, b, examples_question_path=examples_path)
+    return (
+        "## Error analysis: student fails, teacher succeeds\n\n"
+        + render_error_analysis_md(
+            cases,
+            n_examples=12,
+            losing_label=student_name,
+            winning_label=teacher_name,
+        )
+        + "\n"
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--results", type=Path, default=Path("reports/results.json"))
@@ -160,6 +199,12 @@ def main() -> int:
         type=Path,
         default=Path("reports/figures/by_difficulty.png"),
     )
+    parser.add_argument(
+        "--examples-path",
+        type=Path,
+        default=Path("data/spider/dev.json"),
+        help="Spider dev.json -- used to attach question text to error cases",
+    )
     args = parser.parse_args()
 
     if not args.results.exists():
@@ -170,6 +215,7 @@ def main() -> int:
     args.out_md.parent.mkdir(parents=True, exist_ok=True)
     md = _md_table(results)
     failure_md = _failure_breakdown_md(args.predictions_dir, list(results))
+    error_md = _build_error_analysis_section(results, args.predictions_dir, args.examples_path)
 
     args.out_md.write_text(
         "# Spider dev: full eval matrix\n\n"
@@ -179,7 +225,8 @@ def main() -> int:
         "Bucketed by the in-process executor: ``ok`` means rows match gold; "
         "``wrong-result`` parses and runs but disagrees with gold; ``execution`` "
         "raises a SQLite error; ``parse`` fails sqlglot.\n\n"
-        f"{failure_md}\n",
+        f"{failure_md}\n\n"
+        f"{error_md}",
     )
     console.log(f"wrote {args.out_md}")
 
