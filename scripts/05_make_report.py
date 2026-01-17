@@ -232,7 +232,37 @@ def main() -> int:
 
     _bar_chart(results, args.out_chart)
     _difficulty_chart(results, args.out_difficulty)
+    _substitute_readme_numbers(args.results, Path("README.md"))
     return 0
+
+
+_README_NUMBERS_START = "<!-- HEADLINE_NUMBERS_START -->"
+_README_NUMBERS_END = "<!-- HEADLINE_NUMBERS_END -->"
+
+
+def _substitute_readme_numbers(results_path: Path, readme_path: Path) -> None:
+    """Replace the README's headline-numbers block with current results.
+
+    No-op if README doesn't have the markers, or results aren't loadable.
+    """
+    if not readme_path.exists():
+        return
+    text = readme_path.read_text()
+    if _README_NUMBERS_START not in text or _README_NUMBERS_END not in text:
+        return
+    results = _load_results(results_path)
+    table = _md_table(results)
+    block = (
+        f"{_README_NUMBERS_START}\n\n"
+        "Live numbers from `reports/results.md`. Updated by "
+        "`scripts/05_make_report.py`.\n\n"
+        f"{table}\n\n"
+        f"{_README_NUMBERS_END}"
+    )
+    pre = text.split(_README_NUMBERS_START, 1)[0]
+    post = text.split(_README_NUMBERS_END, 1)[1]
+    readme_path.write_text(pre + block + post)
+    console.log(f"updated headline-numbers block in {readme_path}")
 
 
 if __name__ == "__main__":
