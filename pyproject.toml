@@ -137,6 +137,7 @@ addopts = [
     "--cov=distill_sql.eval",
     "--cov=distill_sql.sql",
     "--cov=distill_sql.teacher.client",
+    "--cov=distill_sql.cli",
     "--cov=distill_sql.config",
     "--cov-report=term-missing",
     "--cov-report=html:reports/htmlcov",
@@ -161,6 +162,7 @@ source = [
     "distill_sql.eval",
     "distill_sql.sql",
     "distill_sql.teacher.client",
+    "distill_sql.cli",
     "distill_sql.config",
 ]
 omit = [
