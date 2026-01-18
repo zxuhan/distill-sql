@@ -87,3 +87,27 @@ def test_write_predictions_jsonl_includes_outcome(tmp_path: Path) -> None:
     assert rows[0]["question_id"] == 0
     assert rows[0]["pred_sql"] == "SELECT 1"
     assert rows[0]["failure_mode"] == "ok"
+
+
+def test_run_official_evaluator_raises_when_script_missing(
+    tmp_path: Path, spider_mini_root: Path,
+) -> None:
+    """If the vendored evaluator is missing, fail loud rather than mysteriously."""
+    from distill_sql.data.spider import load_examples
+    from distill_sql.eval.runner import Prediction, run_official_evaluator
+
+    examples = load_examples(spider_mini_root / "dev.json")
+    preds = [
+        Prediction(question_id=e.question_id or 0, db_id=e.db_id, predicted_sql=e.query)
+        for e in examples
+    ]
+    import pytest
+
+    with pytest.raises(FileNotFoundError, match="vendored evaluator"):
+        run_official_evaluator(
+            preds,
+            examples,
+            db_dir=spider_mini_root / "database",
+            tables_json=spider_mini_root / "tables.json",
+            evaluator_dir=tmp_path / "no_such_dir",
+        )
