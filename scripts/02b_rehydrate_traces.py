@@ -27,11 +27,9 @@ from distill_sql.config import (
 )
 from distill_sql.data.spider import SchemaSerializer, load_examples, load_tables
 from distill_sql.teacher.client import (
-    ChatMessage,
     CompletionRequest,
     CompletionResponse,
     DiskCache,
-    StubTeacherClient,
 )
 from distill_sql.teacher.generate import generate_traces, write_stats, write_traces
 
