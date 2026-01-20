@@ -219,3 +219,72 @@ def test_bm25_ranks_relevant_higher() -> None:
 
 def test_bm25_empty_corpus() -> None:
     assert _bm25_scores([], _tokenize("anything")) == []
+
+
+def test_schema_table_index_lookup() -> None:
+    s = SpiderSchema(
+        db_id="x",
+        tables=(
+            SpiderTable("Animal", (SpiderColumn("id", "INT", True, 0),)),
+            SpiderTable("Zookeeper", (SpiderColumn("id", "INT", True, 1),)),
+        ),
+        foreign_keys=(),
+    )
+    assert s.table_index("animal") == 0
+    assert s.table_index("zookeeper") == 1
+    assert s.table_index("nope") is None
+
+
+def test_serializer_handles_missing_db(tmp_path: Path) -> None:
+    """If the DB file isn't present, serializer still emits CREATE TABLE."""
+    s = SpiderSchema(
+        db_id="missing",
+        tables=(SpiderTable("t", (SpiderColumn("c", "INT", True, 0),)),),
+        foreign_keys=(),
+    )
+    ser = SchemaSerializer(SchemaSerializerConfig(include_sample_rows=True))
+    out = ser.serialize(s, "?", db_root=tmp_path)
+    assert "CREATE TABLE t" in out
+    # No sample rows when DB missing.
+    assert "/* sample rows" not in out
+
+
+def test_load_tables_skips_star_column_fk(tmp_path: Path) -> None:
+    """A foreign key with the star sentinel as endpoint is skipped."""
+    import json
+
+    raw = [
+        {
+            "db_id": "x",
+            "table_names_original": ["t"],
+            "table_names": ["t"],
+            "column_names_original": [[-1, "*"], [0, "id"]],
+            "column_names": [[-1, "*"], [0, "id"]],
+            "column_types": ["text", "number"],
+            "primary_keys": [1],
+            "foreign_keys": [[0, 1]],
+        },
+    ]
+    p = tmp_path / "tables.json"
+    p.write_text(json.dumps(raw))
+    schemas = load_tables(p)
+    assert schemas["x"].foreign_keys == ()
+
+
+def test_load_examples_empty_file(tmp_path: Path) -> None:
+    p = tmp_path / "ex.json"
+    p.write_text("[]")
+    from distill_sql.data.spider import load_examples
+
+    assert load_examples(p) == []
+
+
+def test_render_sample_rows_block_empty_returns_empty(spider_mini_root: Path) -> None:
+    from distill_sql.data.spider import (
+        SpiderColumn,
+        SpiderTable,
+        render_sample_rows_block,
+    )
+
+    t = SpiderTable("t", (SpiderColumn("c", "INT", True, 0),))
+    assert render_sample_rows_block(t, []) == ""
