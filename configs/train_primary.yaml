@@ -18,7 +18,10 @@ schedule: cosine
 
 batch_size: 1
 grad_accum: 8
-epochs: 2
+# 1 epoch is enough on filtered teacher traces -- the gold-matched signal is
+# strong, more epochs overfit the teacher's surface style without lifting
+# execution accuracy.
+epochs: 1
 eval_every_steps: 250
 save_every_steps: 250
 
