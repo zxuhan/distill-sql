@@ -92,3 +92,30 @@ def test_canonicalize_is_total(s: str) -> None:
 def test_canonicalize_idempotent_property(sql: str) -> None:
     once = canonicalize(sql)
     assert canonicalize(once) == once
+
+
+def test_canonicalize_preserves_quoted_identifier_case() -> None:
+    """Double-quoted identifiers keep their case; only unquoted ones lowercase."""
+    out = canonicalize('SELECT "FooBar" FROM t')
+    assert "FooBar" in out
+
+
+def test_canonicalize_keeps_string_literals() -> None:
+    """String literals in SELECT must not be lower-cased."""
+    out = canonicalize("SELECT 'TIGER' FROM animal WHERE x = 'A'")
+    assert "TIGER" in out
+    assert "'A'" in out
+
+
+def test_referenced_tables_handles_subquery() -> None:
+    """Tables in subqueries should still be picked up."""
+    sql = "SELECT * FROM t1 WHERE x IN (SELECT y FROM t2)"
+    refs = referenced_tables(sql)
+    assert "t1" in refs
+    assert "t2" in refs
+
+
+def test_referenced_tables_unioned_query() -> None:
+    sql = "SELECT a FROM t1 UNION SELECT a FROM t2"
+    refs = referenced_tables(sql)
+    assert refs == {"t1", "t2"}
