@@ -5,15 +5,15 @@ base:
   model_id: mlx-community/Qwen2.5-0.5B-Instruct-bf16
   max_seq_len: 2048
 
-traces_path: artifacts/traces/spider_train.jsonl
+traces_path: artifacts/traces/spider_train_trim.jsonl
 val_split: 0.05
 
 rank: 16
 alpha: 32.0
 dropout: 0.05
 
-learning_rate: 1.0e-4
-warmup_steps: 100
+learning_rate: 5.0e-5
+warmup_steps: 50
 schedule: cosine
 
 batch_size: 1
