@@ -1,0 +1,14 @@
+# GPT-4o-mini reference eval, run separately so it can be gated behind
+# OpenAI's daily request quota. Once RPD resets, run with:
+#   uv run python scripts/04_eval_all.py --config configs/eval_teacher_only.yaml
+
+runs:
+  - name: gpt_4o_mini_reference
+    kind: openai
+    openai_model: gpt-4o-mini-2024-07-18
+    temperature: 0.0
+    max_tokens: 256
+    use_reasoning_prompt: false
+
+output_dir: reports/predictions
+evaluator_dir: third_party/test-suite-sql-eval
