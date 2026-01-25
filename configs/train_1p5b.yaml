@@ -1,0 +1,31 @@
+# Scaling-axis run: Qwen2.5-1.5B-Instruct on the same trace dataset, same
+# LoRA hyperparameters. Memory-tight on a 16 GB M1 -- if it OOMs, drop
+# max_seq_len to 1536.
+
+base:
+  model_id: mlx-community/Qwen2.5-1.5B-Instruct-bf16
+  max_seq_len: 2048
+
+traces_path: artifacts/traces/spider_train_trim.jsonl
+val_split: 0.05
+
+rank: 16
+alpha: 32.0
+dropout: 0.05
+
+learning_rate: 5.0e-5
+warmup_steps: 50
+schedule: cosine
+
+batch_size: 1
+grad_accum: 8
+epochs: 1
+eval_every_steps: 250
+save_every_steps: 250
+
+seed: 42
+
+include_reasoning_traces: true
+
+output_dir: artifacts/runs
+run_name: scaling_1p5b
