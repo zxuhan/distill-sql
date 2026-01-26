@@ -1,0 +1,74 @@
+[
+  {
+    "name": "base_qwen_0p5b",
+    "kind": "base",
+    "n_warm": 15,
+    "cold_load_s": 3.34,
+    "cold_first_query_s": 0.649,
+    "warm_avg_query_s": 0.608,
+    "warm_tokens_per_s": 60.1,
+    "avg_input_tokens": 464.0,
+    "avg_output_tokens": 37.0,
+    "cost_per_1k_queries_usd": 0.0
+  },
+  {
+    "name": "distilled_primary",
+    "kind": "lora",
+    "n_warm": 15,
+    "cold_load_s": 1.88,
+    "cold_first_query_s": 0.602,
+    "warm_avg_query_s": 0.647,
+    "warm_tokens_per_s": 31.4,
+    "avg_input_tokens": 464.0,
+    "avg_output_tokens": 20.0,
+    "cost_per_1k_queries_usd": 0.0
+  },
+  {
+    "name": "distilled_ablation_direct",
+    "kind": "lora",
+    "n_warm": 15,
+    "cold_load_s": 1.61,
+    "cold_first_query_s": 0.61,
+    "warm_avg_query_s": 0.652,
+    "warm_tokens_per_s": 31.7,
+    "avg_input_tokens": 464.0,
+    "avg_output_tokens": 21.0,
+    "cost_per_1k_queries_usd": 0.0
+  },
+  {
+    "name": "distilled_1p5b",
+    "kind": "lora",
+    "n_warm": 15,
+    "cold_load_s": 3.17,
+    "cold_first_query_s": 1.484,
+    "warm_avg_query_s": 1.589,
+    "warm_tokens_per_s": 14.2,
+    "avg_input_tokens": 464.0,
+    "avg_output_tokens": 23.0,
+    "cost_per_1k_queries_usd": 0.0
+  },
+  {
+    "name": "distilled_1p5b_q4",
+    "kind": "base",
+    "n_warm": 15,
+    "cold_load_s": 0.76,
+    "cold_first_query_s": 1.188,
+    "warm_avg_query_s": 1.16,
+    "warm_tokens_per_s": 17.9,
+    "avg_input_tokens": 464.0,
+    "avg_output_tokens": 21.0,
+    "cost_per_1k_queries_usd": 0.0
+  },
+  {
+    "name": "distilled_3b",
+    "kind": "lora",
+    "n_warm": 15,
+    "cold_load_s": 0.84,
+    "cold_first_query_s": 2.071,
+    "warm_avg_query_s": 2.034,
+    "warm_tokens_per_s": 10.3,
+    "avg_input_tokens": 464.0,
+    "avg_output_tokens": 21.0,
+    "cost_per_1k_queries_usd": 0.0
+  }
+]
