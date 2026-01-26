@@ -14,7 +14,6 @@ Output is a Markdown section appended to ``reports/error_analysis.md``.
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from collections import Counter
 from pathlib import Path
