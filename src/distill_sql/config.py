@@ -164,6 +164,9 @@ class TrainConfig(_StrictModel):
     include_reasoning_traces: bool = True
     """When False, train only on direct (SQL-only) traces."""
 
+    grad_checkpoint: bool = False
+    """Trade compute for memory; needed for 1B+ models on 16 GB unified memory."""
+
     output_dir: Path = Path("artifacts/runs")
     run_name: str = "primary"
 

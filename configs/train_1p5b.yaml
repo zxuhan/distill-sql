@@ -4,9 +4,10 @@
 
 base:
   model_id: mlx-community/Qwen2.5-1.5B-Instruct-bf16
-  max_seq_len: 2048
+  # 1.5B at 2048 / 1536 both OOM on 16 GB. Drop to 1024 + grad checkpoint.
+  max_seq_len: 1024
 
-traces_path: artifacts/traces/spider_train_trim.jsonl
+traces_path: artifacts/traces/spider_train_trim_1024.jsonl
 val_split: 0.05
 
 rank: 16
@@ -19,6 +20,7 @@ schedule: cosine
 
 batch_size: 1
 grad_accum: 8
+grad_checkpoint: true
 epochs: 1
 eval_every_steps: 250
 save_every_steps: 250

@@ -193,7 +193,7 @@ def _build_lora_args(
         "test_batches": 0,
         "max_seq_length": cfg.base.max_seq_len,
         "config": None,
-        "grad_checkpoint": False,
+        "grad_checkpoint": cfg.grad_checkpoint,
         "grad_accumulation_steps": cfg.grad_accum,
         "clear_cache_threshold": 0,
         "lr_schedule": lr_schedule,
