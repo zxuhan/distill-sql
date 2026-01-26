@@ -1,0 +1,12 @@
+# Eval the quantized fused 1.5B (the deployment-ready artifact).
+
+runs:
+  - name: distilled_1p5b_q4
+    kind: base    # base load path: it's a single fused+quantized checkpoint
+    model_id: artifacts/runs/scaling_1p5b/fused_q4
+    temperature: 0.0
+    max_tokens: 256
+    use_reasoning_prompt: false
+
+output_dir: reports/predictions
+evaluator_dir: third_party/test-suite-sql-eval

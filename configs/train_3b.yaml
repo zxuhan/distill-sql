@@ -1,0 +1,33 @@
+# Scaling-axis run #3: Qwen2.5-3B-Instruct (4-bit base) + LoRA. The bf16 3B
+# does not fit on a 16 GB M1 even with grad checkpointing; the 4-bit
+# variant + LoRA does, at the cost of ~4x slower step time vs the 1.5B run.
+# Wall-clock budget: ~5 hours for 1 full epoch on the 1024-ctx trace set.
+
+base:
+  model_id: mlx-community/Qwen2.5-3B-Instruct-4bit
+  max_seq_len: 1024
+
+traces_path: artifacts/traces/spider_train_trim_1024.jsonl
+val_split: 0.05
+
+rank: 16
+alpha: 32.0
+dropout: 0.05
+
+learning_rate: 5.0e-5
+warmup_steps: 50
+schedule: cosine
+
+batch_size: 1
+grad_accum: 4
+grad_checkpoint: true
+epochs: 1
+eval_every_steps: 250
+save_every_steps: 250
+
+seed: 42
+
+include_reasoning_traces: true
+
+output_dir: artifacts/runs
+run_name: scaling_3b

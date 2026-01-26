@@ -1,0 +1,31 @@
+# Smoke test: can we train LoRA over a 4-bit Qwen2.5-3B on 16 GB at all?
+# 50 iters, drop adapter if loss decreases, kill if OOM.
+
+base:
+  model_id: mlx-community/Qwen2.5-3B-Instruct-4bit
+  max_seq_len: 1024
+
+traces_path: /tmp/smoke_50.jsonl
+val_split: 0.05
+
+rank: 16
+alpha: 32.0
+dropout: 0.05
+
+learning_rate: 5.0e-5
+warmup_steps: 10
+schedule: cosine
+
+batch_size: 1
+grad_accum: 4
+grad_checkpoint: true
+epochs: 1
+eval_every_steps: 1000   # avoid val during smoke
+save_every_steps: 1000
+
+seed: 42
+
+include_reasoning_traces: true
+
+output_dir: artifacts/runs
+run_name: scaling_3b_smoke

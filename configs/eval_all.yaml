@@ -33,6 +33,21 @@ runs:
     max_tokens: 256
     use_reasoning_prompt: false
 
+  - name: distilled_1p5b_q4
+    kind: base
+    model_id: artifacts/runs/scaling_1p5b/fused_q4
+    temperature: 0.0
+    max_tokens: 256
+    use_reasoning_prompt: false
+
+  - name: distilled_3b
+    kind: lora
+    model_id: mlx-community/Qwen2.5-3B-Instruct-4bit
+    adapter_path: artifacts/runs/scaling_3b/adapter
+    temperature: 0.0
+    max_tokens: 256
+    use_reasoning_prompt: false
+
   # GPT-4o-mini reference is run separately by configs/eval_teacher_only.yaml
   # so we can guard the OpenAI portion of the matrix behind RPD availability.
 
