@@ -1,0 +1,40 @@
+# Stretch run: Qwen2.5-14B-Instruct, 4-bit base + LoRA (QLoRA).
+#
+# 4-bit (NF4) keeps the base under ~9 GB; LoRA + optimizer state + grad
+# checkpoint activations fit on a single A100 40GB. On 80GB you can drop
+# grad_checkpoint and bump batch_size for ~2x throughput.
+#
+# Wall-clock budget on 1 x A100 80GB: ~3-4 hours for 1 epoch.
+#
+# Why include this: it's the only point on the scaling axis the M1 cannot
+# do at all. If 14B beats GPT-4o-mini reference, that's the headline.
+
+base:
+  model_id: Qwen/Qwen2.5-14B-Instruct
+  max_seq_len: 1024
+  quant: 4bit
+
+traces_path: artifacts/traces/spider_train_trim_1024.jsonl
+val_split: 0.05
+
+rank: 16
+alpha: 32.0
+dropout: 0.05
+
+learning_rate: 3.0e-5  # slightly lower for the larger model
+warmup_steps: 50
+schedule: cosine
+
+batch_size: 1
+grad_accum: 8
+grad_checkpoint: true
+epochs: 1
+eval_every_steps: 250
+save_every_steps: 250
+
+seed: 42
+
+include_reasoning_traces: true
+
+output_dir: artifacts/cloud_runs
+run_name: scaling_14b

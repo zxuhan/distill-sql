@@ -1,0 +1,41 @@
+# Cloud / CUDA scaling-axis run #4: Qwen2.5-7B-Instruct + LoRA, bf16 base.
+#
+# Targets a single A100 80GB (or 40GB with grad checkpointing). bf16 base
+# is ~14 GB; LoRA adapter + optimizer state + activations fit comfortably.
+# Recipe matches the M1 runs (rank 16, alpha 32, all-linear targets) so
+# the only varying axis is parameter count.
+#
+# Wall-clock budget on 1 x A100 80GB: ~75-90 min for 1 epoch on the
+# 1024-ctx trace set (3.4K filtered traces).
+
+base:
+  model_id: Qwen/Qwen2.5-7B-Instruct
+  max_seq_len: 1024
+  # bf16 base. For 40GB cards or to push batch size, set quant: 4bit
+  # (NF4 via bitsandbytes), which the cloud trainer handles transparently.
+  quant: bf16
+
+traces_path: artifacts/traces/spider_train_trim_1024.jsonl
+val_split: 0.05
+
+rank: 16
+alpha: 32.0
+dropout: 0.05
+
+learning_rate: 5.0e-5
+warmup_steps: 50
+schedule: cosine
+
+batch_size: 4
+grad_accum: 2          # effective batch = 8, matches the M1 grad_accum=8 1.5B run
+grad_checkpoint: false # plenty of VRAM at 7B bf16 on A100 80GB
+epochs: 1
+eval_every_steps: 200
+save_every_steps: 200
+
+seed: 42
+
+include_reasoning_traces: true
+
+output_dir: artifacts/cloud_runs
+run_name: scaling_7b
