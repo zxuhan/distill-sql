@@ -7,7 +7,9 @@
 | base_qwen_0p5b | 1034 | 0.339 | 0.508 | 0.361 | 0.224 | 0.151 | 0.087 |
 | distilled_ablation_direct | 1034 | 0.594 | 0.786 | 0.643 | 0.489 | 0.283 | 0.198 |
 | distilled_primary | 1034 | 0.600 | 0.815 | 0.668 | 0.477 | 0.223 | 0.217 |
+| distilled_1p5b_q4 | 1034 | 0.625 | 0.835 | 0.695 | 0.494 | 0.259 | 0.233 |
 | distilled_1p5b | 1034 | 0.692 | 0.855 | 0.756 | 0.534 | 0.446 | 0.246 |
+| distilled_3b | 1034 | 0.726 | 0.903 | 0.814 | 0.569 | 0.392 | 0.261 |
 
 ## Failure-mode breakdown
 
@@ -19,4 +21,6 @@ Bucketed by the in-process executor: ``ok`` means rows match gold; ``wrong-resul
 | distilled_primary | 575 (56%) | 308 (30%) | 144 (14%) | 3 (0%) | 4 (0%) |
 | distilled_ablation_direct | 596 (58%) | 255 (25%) | 178 (17%) | 0 (0%) | 5 (0%) |
 | distilled_1p5b | 670 (65%) | 281 (27%) | 83 (8%) | 0 (0%) | 0 (0%) |
+| distilled_1p5b_q4 | 599 (58%) | 296 (29%) | 139 (13%) | 0 (0%) | 0 (0%) |
+| distilled_3b | 709 (69%) | 266 (26%) | 56 (5%) | 2 (0%) | 1 (0%) |
 
