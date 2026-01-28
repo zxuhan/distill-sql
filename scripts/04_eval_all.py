@@ -1,9 +1,16 @@
-"""Run every entry in a YAML eval config: predict, save jsonl, then score."""
+"""Run every entry in a YAML eval config: predict, save jsonl, then score.
+
+Pass ``--merge`` to fold this run's results into ``reports/results.json``
+instead of replacing it. This lets the GPT-4o-mini reference run
+(``configs/eval_teacher_only.yaml``) be added to a previously-computed
+matrix without re-running every local model.
+"""
 
 from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import os
 import sys
 from pathlib import Path
@@ -143,6 +150,11 @@ def main() -> int:
     parser.add_argument(
         "--limit", type=int, default=None, help="Override limit from config (for fast smoke runs)."
     )
+    parser.add_argument(
+        "--merge",
+        action="store_true",
+        help="Merge results into reports/results.json instead of overwriting it.",
+    )
     args = parser.parse_args()
 
     load_dotenv()
@@ -177,8 +189,24 @@ def main() -> int:
     console.print(table)
 
     out_json = Path("reports") / "results.json"
-    write_results_json(results, out_json)
-    console.log(f"results saved to {out_json}")
+    if args.merge and out_json.exists():
+        existing = json.loads(out_json.read_text())
+        new = {
+            r.name: {
+                "summary": r.summary.as_dict(),
+                "predictions_path": (str(r.predictions_path) if r.predictions_path else None),
+            }
+            for r in results
+        }
+        existing.update(new)
+        out_json.write_text(json.dumps(existing, indent=2))
+        console.log(
+            f"results merged into {out_json} ({len(new)} new/updated, "
+            f"{len(existing)} total)",
+        )
+    else:
+        write_results_json(results, out_json)
+        console.log(f"results saved to {out_json}")
     return 0
 
 

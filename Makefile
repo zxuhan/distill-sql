@@ -7,7 +7,7 @@ PY := uv run python
 SCRIPTS := scripts
 
 .PHONY: help install lint format typecheck test test-fast test-slow \
-        data baseline teacher train eval report \
+        data baseline teacher train eval eval-teacher report \
         clean-cache clean-artifacts
 
 help:
@@ -51,8 +51,11 @@ train: ## Train student LoRA (primary config)
 train-ablation: ## Train student LoRA (ablation config)
 	$(PY) $(SCRIPTS)/03_train_student.py --config configs/train_ablation.yaml
 
-eval: ## Run all four evals (base, primary, ablation, teacher)
+eval: ## Run all evals (base, students, teacher reference)
 	$(PY) $(SCRIPTS)/04_eval_all.py --config configs/eval_all.yaml
+
+eval-teacher: ## Run only the GPT-4o-mini reference and merge into results.json
+	$(PY) $(SCRIPTS)/04_eval_all.py --config configs/eval_teacher_only.yaml --merge
 
 report: ## Build final results.md and chart from eval JSONs
 	$(PY) $(SCRIPTS)/05_make_report.py
