@@ -1,16 +1,25 @@
 # distill-sql
 
-> Task-specific distillation of GPT-4o-mini text-to-SQL into Qwen2.5
-> students (0.5B, 1.5B, and 3B), trained locally on a 16 GB M1 Pro via
-> mlx-lm LoRA, evaluated on the Spider benchmark with the official
-> `test-suite-sql-eval` evaluator.
+> A text-to-SQL model that fits in **847 MB**, runs on-device in
+> **~1.2s per query**, and reaches **62.5%** execution accuracy on
+> Spider dev — distilled from GPT-4o-mini via mlx-lm LoRA on a single
+> 16 GB M1 Pro. The 3B variant pushes to **72.6%**, within striking
+> distance of the closed-source teacher. Marginal cost per query
+> collapses from a network API call (~$0.30 / 1K queries) to
+> electricity (well under $0.01 / 1K queries) with zero data egress.
 
-A 0.5B-parameter student goes from **33.9% → 60.0%** execution accuracy on
-Spider dev. Holding the recipe fixed and walking the scaling axis: 0.5B
-→ 1.5B → 3B reaches **60.0% → 69.2% → 72.6%**, all from the same ~3.4K
-filtered teacher traces, all on a 16 GB M1 Pro. The deployment-ready
-**4-bit-quantized 1.5B fits in 847 MB and still hits 62.5%** — better
-than any 0.5B configuration.
+**Why this exists.** Production text-to-SQL is bottlenecked by latency
+(network round-trip), per-token unit cost, and data governance (queries
+leak schema and PII to a closed model). A small-enough on-device model
+removes all three. The question this repo answers is *how small can you
+go before the SQL stops being useful*, and the answer turns out to be
+roughly **1.5B parameters at 4-bit quantization** — 847 MB on disk,
+fits on every modern phone, runs without a network.
+
+A 0.5B-parameter student goes from **33.9% → 60.0%** execution accuracy
+on Spider dev. Holding the recipe fixed and walking the scaling axis:
+0.5B → 1.5B → 3B reaches **60.0% → 69.2% → 72.6%**, all from the same
+~3.4K filtered teacher traces, all on a 16 GB M1 Pro.
 
 <!-- HEADLINE_NUMBERS_START -->
 
