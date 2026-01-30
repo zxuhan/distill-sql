@@ -18,8 +18,10 @@ classifiers = [
 ]
 
 dependencies = [
-    "mlx>=0.21",
-    "mlx-lm>=0.21",
+    # mlx is Apple-Silicon only; gate behind a sys_platform marker so the
+    # package installs cleanly on Linux/CUDA boxes for the cloud train arm.
+    "mlx>=0.21 ; sys_platform == 'darwin'",
+    "mlx-lm>=0.21 ; sys_platform == 'darwin'",
     "openai>=1.50",
     "datasets>=2.20",
     "sqlglot>=25.0",
