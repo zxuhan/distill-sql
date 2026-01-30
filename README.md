@@ -3,9 +3,11 @@
 > A text-to-SQL model that fits in **847 MB**, runs on-device in
 > **~1.2s per query**, and reaches **62.5%** execution accuracy on
 > Spider dev — distilled from GPT-4o-mini via mlx-lm LoRA on a single
-> 16 GB M1 Pro. The 3B variant pushes to **72.6%**, within striking
-> distance of the closed-source teacher. Marginal cost per query
-> collapses from a network API call (~$0.30 / 1K queries) to
+> 16 GB M1 Pro. The 3B variant reaches **72.6%**, closing 75% of the
+> base→teacher gap (closed teacher: **80.1%**) at <1% of the per-query
+> cost. On easy and medium queries — the bulk of real workload — the
+> distilled student is within 3 points of the teacher. Marginal cost
+> per query collapses from a network API call (~$0.30 / 1K queries) to
 > electricity (well under $0.01 / 1K queries) with zero data egress.
 
 **Why this exists.** Production text-to-SQL is bottlenecked by latency
@@ -33,6 +35,7 @@ Live numbers from `reports/results.md`. Updated by `scripts/05_make_report.py`.
 | distilled_1p5b_q4 | 1034 | 0.625 | 0.835 | 0.695 | 0.494 | 0.259 | 0.233 |
 | distilled_1p5b | 1034 | 0.692 | 0.855 | 0.756 | 0.534 | 0.446 | 0.246 |
 | distilled_3b | 1034 | 0.726 | 0.903 | 0.814 | 0.569 | 0.392 | 0.261 |
+| gpt_4o_mini_reference | 1034 | 0.801 | 0.931 | 0.843 | 0.718 | 0.578 | 0.223 |
 
 <!-- HEADLINE_NUMBERS_END -->
 

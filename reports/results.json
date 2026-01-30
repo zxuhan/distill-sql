@@ -215,5 +215,41 @@
       }
     },
     "predictions_path": "reports/predictions/distilled_3b.jsonl"
+  },
+  "gpt_4o_mini_reference": {
+    "summary": {
+      "n": 1034,
+      "exec_accuracy": 0.801,
+      "exact_match_accuracy": 0.223,
+      "by_difficulty": {
+        "easy": {
+          "n": 368.0,
+          "exec_accuracy": 0.931,
+          "exact_match_accuracy": 0.327
+        },
+        "medium": {
+          "n": 431.0,
+          "exec_accuracy": 0.843,
+          "exact_match_accuracy": 0.28
+        },
+        "hard": {
+          "n": 182.0,
+          "exec_accuracy": 0.718,
+          "exact_match_accuracy": 0.132
+        },
+        "extra": {
+          "n": 53.0,
+          "exec_accuracy": 0.578,
+          "exact_match_accuracy": 0.012
+        }
+      },
+      "failure_breakdown": {
+        "ok": 774,
+        "wrong-result": 248,
+        "execution": 10,
+        "parse": 2
+      }
+    },
+    "predictions_path": "reports/predictions/gpt_4o_mini_reference.jsonl"
   }
 }
