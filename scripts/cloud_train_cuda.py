@@ -195,34 +195,56 @@ def main() -> int:
             print(f"distributed mode: {os.environ.get('WORLD_SIZE')} processes")
 
     # ---- Trainer
-    sft = deps["SFTConfig"](
-        output_dir=str(out_dir),
-        per_device_train_batch_size=int(cfg["batch_size"]),
-        per_device_eval_batch_size=int(cfg["batch_size"]),
-        gradient_accumulation_steps=int(cfg["grad_accum"]),
-        learning_rate=float(cfg["learning_rate"]),
-        warmup_steps=int(cfg["warmup_steps"]),
-        lr_scheduler_type=cfg.get("schedule", "cosine"),
-        num_train_epochs=int(cfg["epochs"]),
-        eval_strategy="steps",
-        eval_steps=int(cfg["eval_every_steps"]),
-        save_strategy="steps",
-        save_steps=int(cfg["save_every_steps"]),
-        save_total_limit=2,
-        bf16=True,
-        max_seq_length=max_seq,
-        packing=False,
-        logging_steps=20,
-        report_to="none",
-        seed=int(cfg.get("seed", 42)),
-    )
-    trainer = deps["SFTTrainer"](
-        model=model,
-        args=sft,
-        train_dataset=train_set,
-        eval_dataset=val_set,
-        tokenizer=tok,
-    )
+    # Cap sequence length on the tokenizer side so it works regardless of
+    # which trl version is installed. trl >= 0.12 renamed
+    # ``SFTConfig.max_seq_length`` to ``max_length``; trl >= 0.16 dropped
+    # it from SFTConfig entirely. Going through the tokenizer is the one
+    # path that's stable across versions.
+    tok.model_max_length = max_seq
+
+    sft_kwargs: dict[str, Any] = {
+        "output_dir": str(out_dir),
+        "per_device_train_batch_size": int(cfg["batch_size"]),
+        "per_device_eval_batch_size": int(cfg["batch_size"]),
+        "gradient_accumulation_steps": int(cfg["grad_accum"]),
+        "learning_rate": float(cfg["learning_rate"]),
+        "warmup_steps": int(cfg["warmup_steps"]),
+        "lr_scheduler_type": cfg.get("schedule", "cosine"),
+        "num_train_epochs": int(cfg["epochs"]),
+        "eval_strategy": "steps",
+        "eval_steps": int(cfg["eval_every_steps"]),
+        "save_strategy": "steps",
+        "save_steps": int(cfg["save_every_steps"]),
+        "save_total_limit": 2,
+        "bf16": True,
+        "packing": False,
+        "logging_steps": 20,
+        "report_to": "none",
+        "seed": int(cfg.get("seed", 42)),
+    }
+    # Best-effort: pass max_length on trl versions that still accept it,
+    # so tokenization is bounded inside the trainer too. Drop silently
+    # if the version we're on rejects the kwarg.
+    try:
+        sft = deps["SFTConfig"](max_length=max_seq, **sft_kwargs)
+    except TypeError:
+        try:
+            sft = deps["SFTConfig"](max_seq_length=max_seq, **sft_kwargs)
+        except TypeError:
+            sft = deps["SFTConfig"](**sft_kwargs)
+
+    # trl >= 0.13 renamed the trainer's ``tokenizer`` arg to
+    # ``processing_class``; older versions only accept ``tokenizer``.
+    trainer_kwargs: dict[str, Any] = {
+        "model": model,
+        "args": sft,
+        "train_dataset": train_set,
+        "eval_dataset": val_set,
+    }
+    try:
+        trainer = deps["SFTTrainer"](processing_class=tok, **trainer_kwargs)
+    except TypeError:
+        trainer = deps["SFTTrainer"](tokenizer=tok, **trainer_kwargs)
     trainer.train()
 
     # ---- Save adapter only (not the merged base — keeps cloud→home rsync small)
