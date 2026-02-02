@@ -18,12 +18,13 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from distill_sql.config import SpiderConfig  # noqa: E402
+from distill_sql.config import SpiderPaths  # noqa: E402
 from distill_sql.data.spider import load_examples  # noqa: E402
 from distill_sql.eval.runner import (  # noqa: E402
     Prediction,
     evaluate_predictions,
     run_official_evaluator,
+    write_predictions_jsonl,
 )
 
 
@@ -39,7 +40,7 @@ def main() -> int:
     parser.add_argument("--results-json", type=Path, default=Path("reports/results.json"))
     args = parser.parse_args()
 
-    spider = SpiderConfig()
+    spider = SpiderPaths()
     examples = load_examples(spider.dev_path())
 
     preds: list[Prediction] = []
@@ -55,8 +56,14 @@ def main() -> int:
                 predicted_sql=str(d.get("predicted_sql", "")),
             ))
 
-    summary, _ = evaluate_predictions(preds, examples, spider.db_dir())
+    summary, per_example = evaluate_predictions(preds, examples, spider.db_dir())
     print(f"in-process: exec_acc={summary.exec_accuracy:.3f} em={summary.exact_match_accuracy:.3f}")
+
+    # Rewrite the JSONL with the M1-pipeline schema (adds difficulty,
+    # gold_sql, exec_match, exact_set_match, failure_mode) so the
+    # downstream report + error-analysis stages work uniformly across
+    # M1 and cloud-produced predictions.
+    write_predictions_jsonl(preds, per_example, args.predictions)
 
     summary_dict = summary.as_dict()
     try:

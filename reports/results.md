@@ -10,6 +10,7 @@
 | distilled_1p5b_q4 | 1034 | 0.625 | 0.835 | 0.695 | 0.494 | 0.259 | 0.233 |
 | distilled_1p5b | 1034 | 0.692 | 0.855 | 0.756 | 0.534 | 0.446 | 0.246 |
 | distilled_3b | 1034 | 0.726 | 0.903 | 0.814 | 0.569 | 0.392 | 0.261 |
+| distilled_7b | 1034 | 0.750 | 0.867 | 0.814 | 0.644 | 0.518 | 0.364 |
 | gpt_4o_mini_reference | 1034 | 0.801 | 0.931 | 0.843 | 0.718 | 0.578 | 0.223 |
 
 ## Failure-mode breakdown
@@ -25,6 +26,7 @@ Bucketed by the in-process executor: ``ok`` means rows match gold; ``wrong-resul
 | distilled_1p5b_q4 | 599 (58%) | 296 (29%) | 139 (13%) | 0 (0%) | 0 (0%) |
 | distilled_3b | 709 (69%) | 266 (26%) | 56 (5%) | 2 (0%) | 1 (0%) |
 | gpt_4o_mini_reference | 774 (75%) | 248 (24%) | 10 (1%) | 2 (0%) | 0 (0%) |
+| distilled_7b | 730 (71%) | 241 (23%) | 62 (6%) | 1 (0%) | 0 (0%) |
 
 ## Error analysis: student fails, teacher succeeds
 

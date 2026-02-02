@@ -251,5 +251,41 @@
       }
     },
     "predictions_path": "reports/predictions/gpt_4o_mini_reference.jsonl"
+  },
+  "distilled_7b": {
+    "summary": {
+      "n": 1034,
+      "exec_accuracy": 0.75,
+      "exact_match_accuracy": 0.364,
+      "by_difficulty": {
+        "easy": {
+          "n": 368.0,
+          "exec_accuracy": 0.867,
+          "exact_match_accuracy": 0.452
+        },
+        "medium": {
+          "n": 431.0,
+          "exec_accuracy": 0.814,
+          "exact_match_accuracy": 0.383
+        },
+        "hard": {
+          "n": 182.0,
+          "exec_accuracy": 0.644,
+          "exact_match_accuracy": 0.402
+        },
+        "extra": {
+          "n": 53.0,
+          "exec_accuracy": 0.518,
+          "exact_match_accuracy": 0.139
+        }
+      },
+      "failure_breakdown": {
+        "ok": 730,
+        "wrong-result": 241,
+        "execution": 62,
+        "parse": 1
+      }
+    },
+    "predictions_path": "reports/predictions/distilled_7b.jsonl"
   }
 }
