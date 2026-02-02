@@ -120,19 +120,29 @@ def main() -> int:
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user},
             ]
-            prompt_ids = tok.apply_chat_template(
-                messages, add_generation_prompt=True, return_tensors="pt",
-            ).to(model.device)
+            # transformers >= ~4.50 returns a BatchEncoding from
+            # apply_chat_template even with return_tensors="pt"; passing
+            # that as the positional ``inputs`` arg to model.generate()
+            # trips an AttributeError ("BatchEncoding has no shape").
+            # Force return_dict=True and unpack with **inputs so this
+            # works across versions.
+            inputs = tok.apply_chat_template(
+                messages,
+                add_generation_prompt=True,
+                return_tensors="pt",
+                return_dict=True,
+            )
+            inputs = {k: v.to(model.device) for k, v in inputs.items()}
+            input_len = inputs["input_ids"].shape[1]
             with deps["torch"].no_grad():
                 out_ids = model.generate(
-                    prompt_ids,
+                    **inputs,
                     max_new_tokens=args.max_new_tokens,
                     do_sample=False,
-                    temperature=1.0,
                     pad_token_id=tok.pad_token_id,
                 )
             completion = tok.decode(
-                out_ids[0, prompt_ids.shape[1]:], skip_special_tokens=True,
+                out_ids[0, input_len:], skip_special_tokens=True,
             )
             sql = extract_sql(completion) or ""
             f.write(json.dumps({
