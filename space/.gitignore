@@ -1,0 +1,9 @@
+# Generated artifacts that should not be pushed to HF
+__pycache__/
+*.pyc
+.gradio/
+.venv/
+*.log
+
+# The adapter directory is committed deliberately (~50 MB), so don't ignore it.
+# !adapter/
