@@ -1,0 +1,40 @@
+# Cloud / CUDA scaling-axis run #5: Qwen2.5-1.5B-Instruct + LoRA, bf16 base.
+#
+# Same recipe as configs/train_1p5b.yaml (the M1 mlx-lm run), only the
+# framework differs (transformers + peft + trl on CUDA). The output
+# adapter is in PEFT format so it loads on a free Hugging Face Spaces
+# CPU container for the live demo (mlx-lm adapters don't load there).
+#
+# Wall-clock budget: ~3-4 min on a single A100. Single-GPU is plenty
+# at 1.5B with 2K traces -- DDP overhead would dominate over the small
+# step count.
+
+base:
+  model_id: Qwen/Qwen2.5-1.5B-Instruct
+  max_seq_len: 1024
+  quant: bf16
+
+traces_path: artifacts/traces/spider_train_trim_1024.jsonl
+val_split: 0.05
+
+rank: 16
+alpha: 32.0
+dropout: 0.05
+
+learning_rate: 5.0e-5
+warmup_steps: 50
+schedule: cosine
+
+batch_size: 4
+grad_accum: 2
+grad_checkpoint: false
+epochs: 1
+eval_every_steps: 200
+save_every_steps: 200
+
+seed: 42
+
+include_reasoning_traces: true
+
+output_dir: artifacts/cloud_runs
+run_name: scaling_1p5b_peft
