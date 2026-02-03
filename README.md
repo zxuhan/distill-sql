@@ -1,5 +1,8 @@
 # distill-sql
 
+> **Live demo: [huggingface.co/spaces/zxuhan7/Distill-SQL](https://huggingface.co/spaces/zxuhan7/Distill-SQL)** —
+> type a question, watch SQL appear. No signup, no API key.
+
 > A text-to-SQL model that fits in **847 MB**, runs on-device in
 > **~1.2s per query**, and reaches **62.5%** execution accuracy on
 > Spider dev — distilled from GPT-4o-mini via mlx-lm LoRA on a single
