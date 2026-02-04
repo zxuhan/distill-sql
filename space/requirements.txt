@@ -1,7 +1,7 @@
 torch>=2.4
 transformers>=4.45
 peft>=0.13
-gradio>=4.44
+gradio>=5.0,<6
 accelerate>=0.34
 # audioop was removed from stdlib in Python 3.13 (PEP 594); HF Spaces
 # defaults to 3.13 and gradio's pydub dependency still imports it. The
