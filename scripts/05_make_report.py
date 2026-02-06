@@ -17,68 +17,202 @@ from rich.console import Console
 console = Console()
 
 
+# ---------------------------------------------------------------------------
+# Chart styling
+# ---------------------------------------------------------------------------
+
+# Tableau-clean palette, accessible on both light and dark GitHub themes.
+COLOR_DISTILLED = "#2563eb"  # blue
+COLOR_DEPLOY = "#16a34a"  # green; used to flag the 4-bit fused row
+COLOR_TEACHER = "#dc2626"  # red, dashed
+COLOR_BASE = "#9ca3af"  # gray, dotted
+
+# Each entry of the scaling axis: (display_name, results.json key, params_in_billions)
+_SCALING_AXIS: tuple[tuple[str, str, float], ...] = (
+    ("0.5B", "distilled_primary", 0.5),
+    ("1.5B", "distilled_1p5b", 1.5),
+    ("3B", "distilled_3b", 3.0),
+    ("7B", "distilled_7b", 7.0),
+)
+_TEACHER_KEY = "gpt_4o_mini_reference"
+_BASE_KEY = "base_qwen_0p5b"
+_QUANTIZED_KEY = "distilled_1p5b_q4"
+
+
+def _apply_chart_style() -> None:
+    """Set a consistent typography and spine style for the report charts."""
+    plt.style.use("seaborn-v0_8-whitegrid")
+    plt.rcParams.update(
+        {
+            "font.family": "sans-serif",
+            "font.sans-serif": ["Inter", "Helvetica Neue", "DejaVu Sans", "sans-serif"],
+            "font.size": 12,
+            "axes.titlesize": 16,
+            "axes.titleweight": "bold",
+            "axes.labelsize": 13,
+            "axes.spines.top": False,
+            "axes.spines.right": False,
+            "xtick.labelsize": 11,
+            "ytick.labelsize": 11,
+            "legend.fontsize": 11,
+            "legend.frameon": False,
+            "figure.dpi": 150,
+            "savefig.bbox": "tight",
+        },
+    )
+
+
 def _load_results(path: Path) -> dict:
     return json.loads(path.read_text())
 
 
-def _bar_chart(results: dict, out_png: Path) -> None:
-    """Bar chart of overall execution accuracy per model."""
+def _exec(results: dict, key: str) -> float:
+    """Return overall exec accuracy in 0-100 scale, or NaN if missing."""
+    summary = results.get(key, {}).get("summary")
+    if not summary:
+        return float("nan")
+    return float(summary["exec_accuracy"]) * 100.0
+
+
+def _per_difficulty(results: dict, key: str, difficulty: str) -> float:
+    """Return per-difficulty exec accuracy in 0-100, or NaN if missing."""
+    summary = results.get(key, {}).get("summary")
+    if not summary:
+        return float("nan")
+    bucket = summary.get("by_difficulty", {}).get(difficulty)
+    if not bucket:
+        return float("nan")
+    return float(bucket["exec_accuracy"]) * 100.0
+
+
+def _scaling_chart(results: dict, out_png: Path) -> None:
+    """Scaling-axis line chart: distilled student vs teacher reference."""
     out_png.parent.mkdir(parents=True, exist_ok=True)
+    _apply_chart_style()
 
-    items = [
-        (name, data["summary"]["exec_accuracy"])
-        for name, data in results.items()
-        if "summary" in data
-    ]
-    items.sort(key=lambda x: x[1])
+    params = [p for _, _, p in _SCALING_AXIS]
+    labels = [l for l, _, _ in _SCALING_AXIS]
+    accs = [_exec(results, k) for _, k, _ in _SCALING_AXIS]
+    teacher = _exec(results, _TEACHER_KEY)
+    base = _exec(results, _BASE_KEY)
+    quantized = _exec(results, _QUANTIZED_KEY)
 
-    fig, ax = plt.subplots(figsize=(8, 4.5))
-    names = [n for n, _ in items]
-    vals = [v for _, v in items]
-    bars = ax.barh(names, vals, color="#4c72b0")
-    for bar, v in zip(bars, vals, strict=True):
-        ax.text(
-            v + 0.01,
-            bar.get_y() + bar.get_height() / 2,
-            f"{v:.3f}",
-            va="center",
-            fontsize=9,
+    fig, ax = plt.subplots(figsize=(11, 5.2))
+
+    # Main scaling line.
+    ax.plot(
+        params, accs,
+        marker="o", markersize=11, linewidth=2.6,
+        color=COLOR_DISTILLED, label="Distilled student",
+        zorder=3,
+    )
+    for x, y in zip(params, accs, strict=True):
+        ax.annotate(
+            f"{y:.1f}%",
+            (x, y), textcoords="offset points", xytext=(0, 14),
+            ha="center", fontsize=11, fontweight="bold", color=COLOR_DISTILLED,
         )
-    ax.set_xlabel("Spider dev execution accuracy")
-    ax.set_xlim(0, 1.0)
-    ax.grid(axis="x", linestyle=":", alpha=0.5)
-    ax.set_title("Spider dev: execution accuracy by model")
-    fig.tight_layout()
-    fig.savefig(out_png, dpi=150)
+
+    # Quantized 1.5B as a separate marker so the deployment row is visible.
+    ax.plot(
+        [1.5], [quantized],
+        marker="D", markersize=11, color=COLOR_DEPLOY,
+        linestyle="None", label="1.5B 4-bit fused (847 MB)",
+        zorder=4,
+    )
+    ax.annotate(
+        f"{quantized:.1f}%",
+        (1.5, quantized), textcoords="offset points", xytext=(0, -22),
+        ha="center", fontsize=10, color=COLOR_DEPLOY, fontweight="bold",
+    )
+
+    # Reference lines.
+    ax.axhline(teacher, linestyle="--", linewidth=1.8, color=COLOR_TEACHER, alpha=0.85, zorder=2)
+    ax.text(
+        params[-1], teacher + 1.0,
+        f"GPT-4o-mini teacher: {teacher:.1f}%",
+        ha="right", color=COLOR_TEACHER, fontsize=11, fontweight="bold",
+    )
+    ax.axhline(base, linestyle=":", linewidth=1.5, color=COLOR_BASE, alpha=0.85, zorder=2)
+    ax.text(
+        params[0], base + 1.0,
+        f"Base 0.5B (no training): {base:.1f}%",
+        ha="left", color=COLOR_BASE, fontsize=10,
+    )
+
+    ax.set_xscale("log")
+    ax.set_xticks(params)
+    ax.set_xticklabels(labels)
+    ax.set_xlim(0.4, 9.0)
+    ax.set_ylim(20, 90)
+    ax.set_xlabel("Student parameter count (log scale)")
+    ax.set_ylabel("Spider dev execution accuracy (%)")
+    ax.set_title("Distilled student scaling: 0.5B to 7B on Spider dev")
+    ax.legend(loc="lower right")
+    ax.grid(True, which="both", linestyle=":", alpha=0.4)
+    fig.savefig(out_png, dpi=180)
     plt.close(fig)
     console.log(f"chart -> {out_png}")
 
 
 def _difficulty_chart(results: dict, out_png: Path) -> None:
-    """Grouped bar chart per difficulty bucket."""
+    """Per-difficulty small multiples: scaling line per difficulty bucket."""
     out_png.parent.mkdir(parents=True, exist_ok=True)
-    diffs = ["easy", "medium", "hard", "extra"]
-    fig, ax = plt.subplots(figsize=(9, 5))
-    width = 0.18
-    x = list(range(len(diffs)))
-    palette = ["#a1d99b", "#74a9cf", "#dd1c77", "#fdae6b"]
-    items = sorted(
-        ((name, data["summary"]) for name, data in results.items() if "summary" in data),
-        key=lambda kv: kv[1]["exec_accuracy"],
+    _apply_chart_style()
+
+    difficulties = ("easy", "medium", "hard", "extra")
+    params = [p for _, _, p in _SCALING_AXIS]
+    labels = [l for l, _, _ in _SCALING_AXIS]
+
+    fig, axes = plt.subplots(1, 4, figsize=(15, 4.2), sharey=True)
+
+    for ax, diff in zip(axes, difficulties, strict=True):
+        student_accs = [_per_difficulty(results, k, diff) for _, k, _ in _SCALING_AXIS]
+        teacher = _per_difficulty(results, _TEACHER_KEY, diff)
+        base = _per_difficulty(results, _BASE_KEY, diff)
+
+        ax.plot(
+            params, student_accs,
+            marker="o", markersize=8, linewidth=2.2,
+            color=COLOR_DISTILLED, zorder=3,
+        )
+        for x, y in zip(params, student_accs, strict=True):
+            ax.annotate(
+                f"{y:.0f}",
+                (x, y), textcoords="offset points", xytext=(0, 10),
+                ha="center", fontsize=9, color=COLOR_DISTILLED, fontweight="bold",
+            )
+
+        ax.axhline(teacher, linestyle="--", linewidth=1.5, color=COLOR_TEACHER, alpha=0.85)
+        ax.axhline(base, linestyle=":", linewidth=1.4, color=COLOR_BASE, alpha=0.85)
+
+        ax.set_xscale("log")
+        ax.set_xticks(params)
+        ax.set_xticklabels(labels)
+        ax.set_xlim(0.4, 9.0)
+        ax.set_ylim(0, 100)
+        ax.set_title(diff, fontsize=14)
+        ax.grid(True, which="both", linestyle=":", alpha=0.4)
+        ax.set_xlabel("params")
+
+    axes[0].set_ylabel("Exec accuracy (%)")
+
+    # Single shared legend at the figure level so each panel stays uncluttered.
+    handles = [
+        plt.Line2D([], [], color=COLOR_DISTILLED, marker="o", linewidth=2.2,
+                   label="Distilled student"),
+        plt.Line2D([], [], color=COLOR_TEACHER, linestyle="--", linewidth=1.5,
+                   label="GPT-4o-mini teacher"),
+        plt.Line2D([], [], color=COLOR_BASE, linestyle=":", linewidth=1.4,
+                   label="Base 0.5B (no training)"),
+    ]
+    fig.legend(handles=handles, loc="upper center", ncol=3, bbox_to_anchor=(0.5, 1.04))
+
+    fig.suptitle(
+        "Per-difficulty scaling: gap to teacher closes fastest on hard / extra",
+        fontsize=15, fontweight="bold", y=1.12,
     )
-    for i, (name, summary) in enumerate(items):
-        vals = [float(summary["by_difficulty"].get(d, {}).get("exec_accuracy", 0.0)) for d in diffs]
-        offsets = [xi + (i - len(items) / 2) * width + width / 2 for xi in x]
-        ax.bar(offsets, vals, width=width, label=name, color=palette[i % len(palette)])
-    ax.set_xticks(x)
-    ax.set_xticklabels(diffs)
-    ax.set_ylim(0, 1.0)
-    ax.set_ylabel("execution accuracy")
-    ax.set_title("Spider dev execution accuracy by difficulty")
-    ax.legend(loc="upper right", fontsize=8)
-    ax.grid(axis="y", linestyle=":", alpha=0.5)
-    fig.tight_layout()
-    fig.savefig(out_png, dpi=150)
+    fig.savefig(out_png, dpi=180)
     plt.close(fig)
     console.log(f"per-difficulty chart -> {out_png}")
 
@@ -230,7 +364,7 @@ def main() -> int:
     )
     console.log(f"wrote {args.out_md}")
 
-    _bar_chart(results, args.out_chart)
+    _scaling_chart(results, args.out_chart)
     _difficulty_chart(results, args.out_difficulty)
     _substitute_readme_numbers(args.results, Path("README.md"))
     return 0
