@@ -1,4 +1,4 @@
-<h1 align="center">distill-sql</h1>
+<h1 align="center">Distill-SQL</h1>
 
 <p align="center">
   <a href="https://huggingface.co/spaces/zxuhan7/Distill-SQL"><img alt="Live demo on HF Spaces" src="https://img.shields.io/badge/%F0%9F%A4%97%20HF%20Spaces-Live%20Demo-yellow?style=for-the-badge"></a>
@@ -16,8 +16,17 @@
 </p>
 
 <p align="center">
-  <strong>Task-specific distillation of GPT-4o-mini text-to-SQL into Qwen2.5 students (0.5B, 1.5B, 3B, 7B). The 1.5B 4-bit student fits in 847 MB, runs on-device in 1.16 seconds per query, and reaches 62.5% on Spider dev. The 7B student reaches 75.0%, within 5.1 points of the closed teacher (80.1%) at less than 1% of the per-query cost.</strong>
+  <strong>A self-hosted text-to-SQL stack distilled from GPT-4o-mini into Qwen2.5 students. The 1.5B 4-bit deployment model is 847 MB on disk, runs in 1.16 seconds per query on a laptop, and reaches 62.5% on Spider dev. The 7B variant reaches 75.0% on the same benchmark, against 80.1% for the closed teacher.</strong>
 </p>
+
+<!--
+After recording the demo per docs/recording_demo.md, drop the file at
+assets/demo.gif and uncomment the block below to embed it under the badges.
+
+<p align="center">
+  <img src="assets/demo.gif" alt="Distill-SQL live demo" width="720">
+</p>
+-->
 
 <p align="center">
   <img src="reports/figures/exec_accuracy.png" alt="Spider dev execution accuracy across the scaling axis" width="780">
@@ -31,19 +40,19 @@
 
 | | Result |
 |---|---|
-| Deployment-ready model | 1.5B fused 4-bit, **847 MB** on disk, **62.5%** Spider dev exec, 1.16s warm latency |
-| Scaling axis on a 16 GB M1 Pro | 0.5B, 1.5B, 3B distilled reach **60.0%, 69.2%, 72.6%** under the same recipe |
-| Scaling extension on 4xA100 | 7B distilled reaches **75.0%** with the same recipe (4-GPU DDP) |
+| Deployable model | 1.5B fused 4-bit, **847 MB** on disk, **62.5%** Spider dev exec, 1.16s warm latency on a 16 GB M1 Pro |
+| Scaling axis on M1 (16 GB unified memory) | 0.5B, 1.5B, 3B distilled reach **60.0%, 69.2%, 72.6%** under one fixed recipe |
+| Scaling extension on cloud (4×A100 80GB DDP) | 7B distilled reaches **75.0%** under the same recipe |
 | Closed teacher reference | GPT-4o-mini at **80.1%** under the same prompting protocol |
-| Total distillation spend | **$0.27** of OpenAI credits across 9.7K Spider train examples |
+| Distillation OpenAI spend | **$0.27** of credits, partial run interrupted by Tier-1 daily-request cap |
 
 The hard and extra splits, where teacher capacity matters most, close from 14.9 and 18.6 point gaps at the M1-trained 3B to 7.4 and 6.0 point gaps at the cloud-trained 7B. Easy and medium are within 3 points of teacher already at the 3B.
 
-## Why on-device, distilled
+## Why on-device
 
-Production text-to-SQL is bottlenecked by three things: the network round-trip latency of every query, the per-token cost at scale, and the data-governance cost of sending schema and questions to a closed model. A small enough on-device model removes all three. This repository documents how small the student can be before the SQL stops being useful.
+Production text-to-SQL services hit three structural costs at scale: network round-trip latency on every query, per-token API billing, and the data-governance overhead of sending schemas and questions to a closed model. A small enough self-hosted model removes all three. This repository documents how small the student can be before the SQL stops being useful.
 
-The smallest deployable configuration is the 1.5B 4-bit fused model: 847 MB on disk, sub-2-second warm latency on a laptop, and 62.5% Spider dev exec accuracy. Holding the recipe fixed and stepping through the Qwen2.5 family yields a clean scaling curve up to the 7B variant, which lands within striking distance of GPT-4o-mini.
+The smallest deployable configuration is the 1.5B 4-bit fused model: 847 MB on disk, sub-2-second warm latency on a laptop, 62.5% Spider dev execution accuracy. Holding the recipe fixed and stepping through the Qwen2.5 family produces a clean scaling curve up to the 7B variant, which lands within 5.1 points of GPT-4o-mini.
 
 ## Results
 
@@ -70,20 +79,11 @@ Live numbers from `reports/results.md`. Updated by `scripts/05_make_report.py`.
   <img src="reports/figures/by_difficulty.png" alt="Per-difficulty execution accuracy across the scaling axis" width="900">
 </p>
 
-### 1. The scaling axis is monotonic with diminishing returns
+### Scaling axis
 
-Same recipe (rank-16 LoRA on all linear projections, ~3.4K execution-validated traces, one epoch), varying parameter count. Five points across roughly a 14x parameter range:
+Five points across roughly a 14× parameter range under one fixed recipe (rank-16 LoRA on all linear projections, identical learning-rate schedule, one epoch per run). Gains diminish but remain monotonic up to the 7B point. The largest single jump is 0.5B to 1.5B (+9.2 points), driven by the elimination of execution errors at the smallest scale. The 3B to 7B jump (+2.4 points overall) is concentrated on the hard and extra splits, where teacher capacity still has room above the student.
 
-```
-0.5B → 1.5B    +9.2 pt   (60.0 → 69.2)   3.0× params
-1.5B →  3B     +3.4 pt   (69.2 → 72.6)   2.0× params
- 3B  →  7B     +2.4 pt   (72.6 → 75.0)   2.3× params
- 7B  → teacher +5.1 pt   (75.0 → 80.1)   closed model
-```
-
-The 0.5B to 1.5B jump is dominated by the elimination of execution errors (failure mode `execution`: 14% to 8%). The 1.5B to 3B jump comes from picking the right join keys in hard cases (hard exec accuracy 53.4% to 56.9%). The 3B to 7B jump closes the teacher gap on extra-difficulty queries (extra exec accuracy 39.2% to 51.8%, a 12.6 point absolute gain on the hardest split).
-
-### 2. Quantization is almost free when applied after training
+### Quantization tradeoff
 
 Fusing the 1.5B LoRA adapter into the bf16 base, then post-training-quantizing to 4 bits:
 
@@ -91,15 +91,17 @@ Fusing the 1.5B LoRA adapter into the bf16 base, then post-training-quantizing t
 |---|---:|---:|---:|---:|
 | 1.5B bf16 | 2.9 GB | 69.2% | 1.59s | 14 |
 | 1.5B 4-bit (fused) | **847 MB** | **62.5%** | **1.16s** | **18** |
-| change | 3.4x smaller | -6.7 pt | 27% faster | +29% |
+| change | 3.4× smaller | -6.7 pt | 27% faster | +29% |
 
-The 4-bit 1.5B beats every 0.5B configuration trained in this repository (best 0.5B distilled: 60.0%) in less storage than the 0.5B base.
+The 4-bit 1.5B beats every 0.5B configuration trained in this repository (best 0.5B distilled: 60.0%) in less storage than the 0.5B base model.
 
-### 3. Execution-validated self-consistency drives the failure-mode reduction
+### Trace filtering
 
-The teacher generates three samples per question at temperature 0.3. Each sample is executed against the example's SQLite database, and only the sample whose result set matches gold rows as a multiset is kept as a training trace. Without this filter, the trace dataset would contain teacher attempts that confidently reference columns the schema does not have.
+The teacher generates three samples per question at temperature 0.3. Each sample executes against the example's SQLite database; only samples whose result set matches gold rows under multiset equality are kept as training traces.
 
-Failure-mode counts (out of 1034 dev examples):
+Numbers from the actual run: of **28,716** teacher generations across ~9.6K Spider train examples, **3,397 (~12%)** survive the gold-execution-match filter and become the trace dataset. The cloud 7B run trains on a 2,125-example subset that fits the 1024-token context window after length-trimming.
+
+The shape of the failure-mode counts shows the result of training on this filtered set (out of 1034 dev examples):
 
 | failure mode | base 0.5B | distilled 0.5B | distilled 1.5B | distilled 3B | distilled 7B |
 |---|---:|---:|---:|---:|---:|
@@ -109,7 +111,7 @@ Failure-mode counts (out of 1034 dev examples):
 | `parse` (sqlglot fails) | 1 | 3 | 0 | 2 | 1 |
 | `empty` (no SQL produced) | 17 | 4 | 0 | 1 | 0 |
 
-Execution errors fall by roughly 10x from base to 7B distilled. The model has learned the schemas it sees during training and stopped inventing column names.
+Execution errors fall by roughly 10× from base to 7B distilled. The model has stopped inventing column names that do not appear in the schema.
 
 ## Cherry-picked examples
 
@@ -166,35 +168,34 @@ flowchart TB
     adapters -. "deploy 1.5B q4" .-> hf
 
     classDef deploy fill:#dcfce7,stroke:#16a34a,stroke-width:2px;
-    classDef teacher fill:#fef3c7,stroke:#d97706,stroke-width:2px;
+    classDef teacher_style fill:#fef3c7,stroke:#d97706,stroke-width:2px;
     class hf deploy;
-    class teacher teacher;
+    class teacher teacher_style;
 ```
 
 The same trace JSONL feeds both the Mac arm and the cloud arm. LoRA hyperparameters (rank 16, alpha 32, dropout 0.05, all-linear targets), learning rate, schedule, and dropout are identical across all five training runs. Only the parameter count and the framework differ. This consistency is load-bearing for the scaling-axis claim.
 
-Detailed module map: see [docs/methodology.md](docs/methodology.md). Cloud A100 walkthrough: [docs/cloud_a100.md](docs/cloud_a100.md). HF Space deploy walkthrough: [docs/hf_space.md](docs/hf_space.md).
+Detailed module map: see [docs/methodology.md](docs/methodology.md). Cloud A100 walkthrough: [docs/cloud_a100.md](docs/cloud_a100.md). HF Space deploy walkthrough: [docs/hf_space.md](docs/hf_space.md). Demo recording guide: [docs/recording_demo.md](docs/recording_demo.md).
 
-## Latency and cost
+## Performance
 
-Cold-load and warm-steady-state, sampled on a 16 GB M1 Pro at greedy decoding with ~464-token schema-linked prompts:
+Cold-load and warm-steady-state, sampled on a 16 GB M1 Pro with greedy decoding and ~464-token schema-linked prompts:
 
-| model | warm wall-clock / query | tokens/s | cold load | model on disk | $ / 1K queries |
-|---|---:|---:|---:|---:|---:|
-| `base_qwen_0p5b` | 0.61s | 60 | 3.3s | 1.0 GB | electricity |
-| `distilled_primary (0.5B)` | 0.65s | 31 | 1.9s | 1.0 GB | electricity |
-| `distilled_1p5b_q4` | **1.16s** | 18 | **0.8s** | **847 MB** | electricity |
-| `distilled_1p5b (bf16)` | 1.59s | 14 | 3.2s | 2.9 GB | electricity |
-| `distilled_3b (4-bit base)` | 2.03s | 10 | 0.8s | 1.7 GB | electricity |
-| `gpt_4o_mini_reference` | network RTT | n/a | n/a | n/a | $0.30 |
+| model | warm wall-clock / query | tokens/s | cold load | model on disk |
+|---|---:|---:|---:|---:|
+| `base_qwen_0p5b` | 0.61s | 60 | 3.3s | 1.0 GB |
+| `distilled_primary (0.5B)` | 0.65s | 31 | 1.9s | 1.0 GB |
+| `distilled_1p5b_q4` | **1.16s** | 18 | **0.8s** | **847 MB** |
+| `distilled_1p5b (bf16)` | 1.59s | 14 | 3.2s | 2.9 GB |
+| `distilled_3b (4-bit base)` | 2.03s | 10 | 0.8s | 1.7 GB |
 
-Local marginal cost is electricity-only, well under $0.0001 per query. GPT-4o-mini at the same prompt sizes runs ~$0.0003 per query (~$0.30 per 1K queries at posted Tier-1 pricing). At any nontrivial volume the local model is effectively free, with the additional benefits of zero network latency and zero data egress.
+Self-hosted models incur no per-query API cost. GPT-4o-mini at the same prompt sizes runs roughly $0.30 per 1,000 queries at posted Tier-1 rates, in addition to network round-trip latency.
 
 Full table: [reports/latency.md](reports/latency.md).
 
 ## Reproduce
 
-The repository is `uv`-driven. Cross-platform dependencies install cleanly: `mlx` and `mlx-lm` are gated behind a `sys_platform == 'darwin'` marker, so a Linux/CUDA box skips them and pulls only the cloud-arm requirements.
+The repository is `uv`-driven. Cross-platform dependencies install cleanly: `mlx` and `mlx-lm` are gated behind `sys_platform == 'darwin'`, so a Linux/CUDA box skips them and pulls only the cloud-arm requirements.
 
 ```sh
 git clone https://github.com/zxuhan/distill-sql
@@ -205,15 +206,15 @@ uv sync --all-extras                 # creates .venv with all deps + dev tools
 Then, in order:
 
 ```sh
-make data                            # fetch Spider from HF (~1 GB, 30s on a fast pipe)
+make data                            # fetch Spider from HF (~1 GB, ~30s on a fast pipe)
 cp .env.example .env                 # set OPENAI_API_KEY
-make teacher                         # generate self-consistency traces (~$10, gated by RPD)
+make teacher                         # generate self-consistency traces
 make train                           # primary 0.5B, ~50 min on M1
 uv run python scripts/03_train_student.py --config configs/train_ablation.yaml
 uv run python scripts/03_train_student.py --config configs/train_1p5b.yaml
 uv run python scripts/03_train_student.py --config configs/train_3b.yaml
 
-# fuse + 4-bit quantize the 1.5B for deployment (~5 min)
+# fuse + 4-bit quantize the 1.5B for deployment
 uv run python -m mlx_lm fuse \
     --model mlx-community/Qwen2.5-1.5B-Instruct-bf16 \
     --adapter-path artifacts/runs/scaling_1p5b/adapter \
@@ -222,7 +223,7 @@ uv run python -m mlx_lm convert \
     --hf-path artifacts/runs/scaling_1p5b/fused \
     --mlx-path artifacts/runs/scaling_1p5b/fused_q4 -q
 
-make eval                            # all local students + GPT-4o-mini reference (~80 min)
+make eval                            # all local students + GPT-4o-mini reference
 make report                          # rebuild reports/results.md + figures + README headline table
 ```
 
@@ -234,31 +235,31 @@ uv run python scripts/score_jsonl.py \
     --name distilled_7b
 ```
 
-Reproduction notes:
+Practical notes:
 
-- Teacher generation requires an OpenAI API key and roughly $10. The Tier-1 daily-request cap forces a multi-day run unless the account is upgraded. Cached responses live under `artifacts/cache/teacher/`, so re-runs hit the cache.
-- The 3B M1 run takes about five hours on a 16 GB M1 (4-bit base + LoRA + grad checkpoint at sequence length 1024).
-- The 7B cloud run requires a CUDA GPU. A single A100 80GB session is sufficient at roughly $5 of pod time.
+- Teacher generation requires an OpenAI API key. Tier-1 accounts have a 10K-requests-per-day cap that this pipeline can hit; cached responses live under `artifacts/cache/teacher/` and survive across runs.
+- The 3B M1 run takes about five hours on a 16 GB M1 Pro at 4-bit base + LoRA + grad checkpoint, sequence length 1024.
+- The 7B cloud run runs on a single 80 GB A100 in roughly 2.5 minutes for training plus 10-15 minutes for evaluation. Cost on RunPod community-cloud A100 SXM is roughly $5 per session.
 
 To skip reproduction entirely and just see the model in action, visit [the HF Space](https://huggingface.co/spaces/zxuhan7/Distill-SQL).
 
-## Methodology highlights
+## Methodology
 
-- **Execution-validated self-consistency at the teacher.** Three samples per question at temperature 0.3, executed against the example's SQLite database, multiset-equality vs gold rows. Drops roughly 30% of teacher attempts. The trace dataset is by construction grounded in the schema.
-- **Schema linking via BM25 with foreign-key closure** when the full schema would exceed ~1500 tokens. Affects roughly 10% of Spider's larger schemas.
-- **Two prompt modes during trace generation** (60% direct, 40% reasoning). The reasoning mode helps `easy` (+2.9 pt on the 0.5B mix vs direct-only) but hurts `extra` (-6.0 pt).
-- **Final checkpoint, not val-loss-best.** Validation loss is token-level cross-entropy on held-out teacher traces and does not measure Spider exec accuracy. Picking val-best lost roughly 2.7 points on both 0.5B configurations versus picking the last iteration.
-- **MLX-native LoRA** (mlx-lm, rank 16, alpha 32, all decoder linears) on Mac. Identical hyperparameters via **trl + peft + bitsandbytes** on CUDA. The predictions JSONL schema is identical, so scoring and reporting are framework-agnostic.
+- **Execution-validated self-consistency at the teacher.** Three samples per question at temperature 0.3, each executed against the example's SQLite database. Multiset-equality vs gold rows is the keep filter. About 12% of teacher generations pass.
+- **Schema linking via BM25 with foreign-key closure** when the full schema would exceed roughly 1500 tokens. Affects the long-tail of larger Spider schemas.
+- **Two prompt modes during trace generation.** A 60/40 mix of direct-output and brief-reasoning-then-output. Direct mode is used at inference for the small students.
+- **Final checkpoint, not validation-loss-best.** Validation loss is token-level cross-entropy on held-out teacher traces and does not measure Spider execution accuracy.
+- **MLX-native LoRA** on the Mac (mlx-lm, rank 16, alpha 32, all decoder linears). **trl + peft + bitsandbytes** with identical hyperparameters on CUDA. The predictions JSONL schema is identical, so scoring and reporting work uniformly across the two framework arms.
 
 Full notes: [docs/methodology.md](docs/methodology.md).
 
-## Limitations and roadmap
+## Limitations
 
-- **Spider is from 2018.** Modern text-to-SQL work has moved to BIRD (Li et al., 2023), which features harder schemas and more realistic queries. A BIRD dev evaluation on the 1.5B, 3B, and 7B is the highest-leverage next experiment and runs without additional GPU cost.
-- **The 7B distilled student does not exceed the closed teacher.** Overall accuracy is 75.0% versus 80.1% (5.1 point gap). A 14B 4-bit variant is configured at `configs/train_14b_cuda.yaml` but not run in this repository for compute-budget reasons. Best estimate based on the slope of the scaling line: 14B lands at 77-80%, possibly tying the teacher on overall exec.
-- **No reinforcement learning from execution feedback.** Standard practice for closing the last gap to teacher would be to follow SFT with PPO or GRPO using the gold-vs-prediction execution match as a reward signal. Likely worth +2 to +4 points based on related work.
-- **Single-database execution match, not full test-suite execution accuracy.** The vendored evaluator supports the test-suite metric of Zhong et al. (2020) via `--etype all`. The single-database number reported here is slightly more lenient.
-- **Trace dataset is small.** 3.4K filtered traces is the result of one Tier-1 daily-budget OpenAI run and the self-consistency filter dropping ~30% of attempts. A full retrace at higher Tier should approximately double the filtered set and add an estimated 3-5 points across all student sizes.
+- **Spider is from 2018.** Modern text-to-SQL work has moved to BIRD (Li et al., 2023), which features harder schemas and more realistic queries. A BIRD-dev evaluation on the existing 1.5B, 3B, and 7B adapters is configured but not yet executed.
+- **The 7B distilled student does not exceed the closed teacher.** Overall accuracy is 75.0% versus 80.1% (5.1-point gap). A 14B 4-bit variant is configured at `configs/train_14b_cuda.yaml`. Best estimate from the slope of the scaling line: 14B lands at 77-80%, possibly tying the teacher overall.
+- **No reinforcement learning from execution feedback.** A standard practice for closing the last gap to teacher would follow the SFT stage with PPO or GRPO using gold-vs-prediction execution match as the reward signal.
+- **Single-database execution match.** Reported numbers use the lenient single-database executor. The full test-suite execution accuracy of Zhong et al. (2020) is supported by the vendored evaluator via `--etype all` but not surfaced in the headline table.
+- **Trace dataset is small.** 3,397 filtered traces is the result of one Tier-1 daily-budget OpenAI run, partial. A re-run at higher API tier should approximately double the filtered set.
 
 ## References
 
@@ -284,4 +285,4 @@ Full notes: [docs/methodology.md](docs/methodology.md).
 }
 ```
 
-The official evaluator vendored at `third_party/test-suite-sql-eval/` is from <https://github.com/taoyds/test-suite-sql-eval>, Apache 2.0, license preserved alongside the source.
+The official evaluator vendored at `third_party/test-suite-sql-eval/` is from <https://github.com/taoyds/test-suite-sql-eval> under Apache 2.0; the original license is preserved alongside the source.
