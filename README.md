@@ -16,10 +16,9 @@
   <strong>Self-hosted text-to-SQL distilled from GPT-4o-mini into Qwen2.5 students. The deployable 1.5B 4-bit model is 847 MB on disk and runs in 1.16 seconds per query on a laptop. The 7B variant reaches 75.0% on Spider dev, against 80.1% for the closed teacher.</strong>
 </p>
 
-<!--
-Optional: drop a demo recording at assets/demo.gif and uncomment to embed.
-<p align="center"><img src="assets/demo.gif" alt="distill-sql live demo" width="720"></p>
--->
+<p align="center">
+  <img src="assets/demo.gif" alt="distill-sql streaming a SQL response on three Spider dev questions" width="720">
+</p>
 
 <p align="center">
   <img src="reports/figures/exec_accuracy.png" alt="Spider dev execution accuracy across the scaling axis" width="780">
