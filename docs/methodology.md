@@ -13,7 +13,7 @@ foreign keys, and 2-3 sample rows per table; if the rendered schema would
 exceed a soft token budget (default ~1500 tokens), we score each table with
 BM25 against the question and drop the lowest-scoring ones until the schema
 fits. Tables involved in foreign keys with kept tables come back in via a
-single closure pass — otherwise BM25 can drop a referenced table and leave
+single closure pass, otherwise BM25 can drop a referenced table and leave
 a dangling join.
 
 Tokenization for BM25 is whitespace + snake_case-aware: ``weight_kg`` is
@@ -85,6 +85,6 @@ runnable on a laptop.
 ## Why two configurations?
 
 A single trained model is a number, not an experiment. The ablation
-holds the rank/alpha/learning rate fixed and varies one knob — by
-default whether reasoning-mode traces are included — so we can attribute
+holds the rank/alpha/learning rate fixed and varies one knob, by
+default whether reasoning-mode traces are included, so we can attribute
 any quality difference to that knob. The README reports both.

@@ -1,18 +1,15 @@
 <h1 align="center">Distill-SQL</h1>
 
 <p align="center">
-  <a href="https://huggingface.co/spaces/zxuhan7/Distill-SQL"><img alt="Live demo on HF Spaces" src="https://img.shields.io/badge/%F0%9F%A4%97%20HF%20Spaces-Live%20Demo-yellow?style=for-the-badge"></a>
-  <img alt="Spider dev exec" src="https://img.shields.io/badge/Spider%20dev%20exec-75.0%25%20%287B%29-2563eb?style=for-the-badge">
-  <img alt="On-device size" src="https://img.shields.io/badge/On--device-847%20MB%20%2F%201.16s-22c55e?style=for-the-badge">
-  <img alt="License" src="https://img.shields.io/badge/license-MIT-yellow?style=for-the-badge">
-</p>
-
-<p align="center">
-  <img alt="Python" src="https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white">
+  <a href="https://huggingface.co/spaces/zxuhan7/Distill-SQL"><img alt="Live demo" src="https://img.shields.io/badge/HF%20Spaces-live%20demo-yellow"></a>
+  <img alt="Spider dev exec" src="https://img.shields.io/badge/Spider%20dev%20exec-75.0%25-2563eb">
+  <img alt="On-device size" src="https://img.shields.io/badge/On--device-847%20MB%20%2F%201.16s-22c55e">
+  <img alt="License" src="https://img.shields.io/badge/license-MIT-blue">
+  <img alt="Python" src="https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white">
   <img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-2.4%2B-EE4C2C?logo=pytorch&logoColor=white">
-  <img alt="MLX" src="https://img.shields.io/badge/Apple%20MLX-0.21%2B-000000?logo=apple&logoColor=white">
-  <img alt="Hugging Face" src="https://img.shields.io/badge/%F0%9F%A4%97%20Transformers-4.45%2B-FFD21E">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-148%20passing-success">
+  <img alt="MLX" src="https://img.shields.io/badge/MLX-0.21%2B-000000?logo=apple&logoColor=white">
+  <img alt="Transformers" src="https://img.shields.io/badge/transformers-4.45%2B-FFD21E">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-148%20passing-brightgreen">
 </p>
 
 <p align="center">
@@ -20,12 +17,8 @@
 </p>
 
 <!--
-After recording the demo per docs/recording_demo.md, drop the file at
-assets/demo.gif and uncomment the block below to embed it under the badges.
-
-<p align="center">
-  <img src="assets/demo.gif" alt="Distill-SQL live demo" width="720">
-</p>
+Optional: drop a demo recording at assets/demo.gif and uncomment to embed.
+<p align="center"><img src="assets/demo.gif" alt="Distill-SQL live demo" width="720"></p>
 -->
 
 <p align="center">
@@ -146,36 +139,19 @@ The 0.5B distilled student has the vocabulary (`concert`, `stadium`, `manager_na
 ## Architecture
 
 ```mermaid
-flowchart TB
-    spider[("Spider train<br/>9.7K examples")]
-    teacher["Teacher pipeline<br/>BM25 schema linking, GPT-4o-mini<br/>n=3 self-consistency, exec-validated"]
-    traces[("Filtered traces<br/>3.4K examples")]
-    mlx["M1 16 GB Pro<br/>mlx-lm LoRA<br/>Qwen2.5 0.5B / 1.5B / 3B"]
-    cloud["A100 80GB cloud<br/>trl + peft LoRA, 4-GPU DDP<br/>Qwen2.5 7B"]
-    adapters["5 trained adapters<br/>plus 4-bit fused 1.5B (847 MB)"]
-    spiderdev[("Spider dev<br/>1034 examples")]
-    eval["Official Spider evaluator<br/>execution accuracy, exact match,<br/>failure-mode breakdown"]
-    hf[("Hugging Face Spaces<br/>public demo, free CPU tier")]
-
-    spider --> teacher
-    teacher --> traces
-    traces --> mlx
-    traces --> cloud
-    mlx --> adapters
-    cloud --> adapters
-    adapters --> eval
-    spiderdev --> eval
-    adapters -. "deploy 1.5B q4" .-> hf
-
-    classDef deploy fill:#dcfce7,stroke:#16a34a,stroke-width:2px;
-    classDef teacher_style fill:#fef3c7,stroke:#d97706,stroke-width:2px;
-    class hf deploy;
-    class teacher teacher_style;
+flowchart LR
+    spider[(Spider train)] --> teacher[Teacher · GPT-4o-mini<br/>n=3 · exec-validated]
+    teacher --> traces[(Filtered traces<br/>3.4K examples)]
+    traces --> mlx[M1 · mlx-lm<br/>0.5B / 1.5B / 3B]
+    traces --> cloud[Cloud · trl+peft<br/>7B · 4-GPU DDP]
+    mlx --> eval[Spider dev evaluation]
+    cloud --> eval
+    mlx -. fuse + 4-bit .-> hf[(HF Space · 847 MB)]
 ```
 
-The same trace JSONL feeds both the Mac arm and the cloud arm. LoRA hyperparameters (rank 16, alpha 32, dropout 0.05, all-linear targets), learning rate, schedule, and dropout are identical across all five training runs. Only the parameter count and the framework differ. This consistency is load-bearing for the scaling-axis claim.
+The same trace JSONL feeds the Mac and cloud arms. LoRA hyperparameters (rank 16, alpha 32, all linear targets), learning rate, and schedule are identical across all five training runs. Only the parameter count and the framework differ.
 
-Detailed module map: see [docs/methodology.md](docs/methodology.md). Cloud A100 walkthrough: [docs/cloud_a100.md](docs/cloud_a100.md). HF Space deploy walkthrough: [docs/hf_space.md](docs/hf_space.md). Demo recording guide: [docs/recording_demo.md](docs/recording_demo.md).
+Detailed module map and design choices: [docs/methodology.md](docs/methodology.md). Cloud A100 reproduction recipe: [docs/cloud_a100.md](docs/cloud_a100.md).
 
 ## Performance
 

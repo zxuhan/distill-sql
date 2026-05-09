@@ -17,8 +17,8 @@ axis is parameter count.
 
 ## Provision the box
 
-Pick any provider with on-demand A100s — Lambda, RunPod, Modal, Vast,
-Paperspace, etc. SSH in. Install `uv` if not present:
+Pick any provider offering on-demand A100s (Lambda, RunPod, Modal,
+Vast, Paperspace, and similar). SSH in, then install `uv` if not present:
 
 ```sh
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -35,7 +35,7 @@ rsync -avz --exclude .venv --exclude .pytest_cache \
 ```
 
 Make sure `artifacts/traces/spider_train_trim_1024.jsonl` is included
-(it is, by default — only `artifacts/runs/` is excluded).
+(it is by default; only `artifacts/runs/` is excluded).
 
 ## Run training + eval
 
@@ -75,26 +75,24 @@ uv run python scripts/05_make_report.py
 
 The headline table in the README is auto-regenerated.
 
-## What success looks like
+## Expected results
 
-- 7B should land in the **74–80%** range on Spider dev exec accuracy
-  (one cleanly diminishing-returns point past the 3B's 72.6%).
-- 14B should land in the **78–84%** range. If it crosses the
-  GPT-4o-mini reference line, that's the headline number for the YC
-  application: a fully open-source on-device pipeline that matches the
-  closed-source teacher.
-- If 14B *plateaus* near 7B, that's also a reportable result —
-  "scaling saturates around 7B for Spider; the right axis was always
-  quantization, not size."
+- 7B should land in the 74-80% range on Spider dev execution accuracy
+  (one diminishing-returns point past the 3B's 72.6%).
+- 14B should land in the 78-84% range. Crossing the GPT-4o-mini
+  reference line (80.1%) means a fully open-source, on-device pipeline
+  that matches the closed teacher.
+- If 14B plateaus near 7B, the conclusion is that scaling saturates
+  around 7B for Spider and the productive axis was quantization rather
+  than parameter count.
 
-Either outcome is publishable; the diminishing-returns shape is itself
-the story.
+Either outcome is informative. The shape of the curve is the result.
 
 ## Why a separate stack for cloud
 
 `mlx-lm` is Apple-Silicon-only. The M1 trainer and the CUDA trainer
 share the **prompt template**, the **trace format**, and the **LoRA
-hyperparameters** — which means the scaling-axis claim ("same recipe,
+hyperparameters**, which means the scaling-axis claim ("same recipe,
 varying parameter count") holds. They differ only in the framework
 required by the hardware. Predictions JSONL schema is identical, so the
 scoring + report stages are unchanged.
