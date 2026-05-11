@@ -221,15 +221,17 @@ def update_example(name: str) -> tuple[str, str]:
 
 HEADER_MD = f"""# distill-sql
 
-A text-to-SQL model **distilled from GPT-4o-mini** into a small Qwen2.5
-student. Quantized 1.5B variant fits in **847 MB** and reaches 62.5% on
-Spider dev; the 3B distilled hits 72.6%, 7B distilled hits 75.0%
-(closed teacher: 80.1%).
+Text-to-SQL distilled from GPT-4o-mini into Qwen2.5 students. The 1.5B
+4-bit variant fits in **847 MB** and reaches **62.5%** on Spider dev;
+the 7B variant reaches **75.0%** against **80.1%** for the closed
+teacher.
 
-This Space runs **{BASE_MODEL}** on **{DEVICE.upper()}**. Pick an example
-schema below or paste your own SQLite `CREATE TABLE` block.
+> **Note:** this demo runs on a free HF CPU container. Response time is
+> typically **5 to 15 seconds per query**.
 
-[GitHub →](https://github.com/zxuhan/distill-sql)
+Pick an example schema below or paste your own SQLite `CREATE TABLE` block.
+
+Currently running: `{BASE_MODEL}` on `{DEVICE.upper()}` · [GitHub repo](https://github.com/zxuhan/distill-sql)
 """
 
 with gr.Blocks(title="distill-sql", theme=gr.themes.Soft()) as demo:

@@ -18,16 +18,20 @@ WIDTH = 760
 HEIGHT = 460
 OUT_PATH = Path("assets/demo.gif")
 
-# Colors: dark navy terminal aesthetic.
-BG = (15, 23, 42)
-CARD = (30, 41, 59)
-ACCENT = (59, 130, 246)
-GREEN = (34, 197, 94)
-TEXT = (226, 232, 240)
-DIM = (148, 163, 184)
-SQL_BG = (8, 14, 28)
-SQL_COLOR = (147, 197, 253)
-KEYWORD = (244, 114, 182)  # pink, for SQL keywords
+# Colors: light HF Soft theme aesthetic, so the embedded GIF matches the
+# look of the live Space at huggingface.co/spaces/zxuhan7/Distill-SQL.
+BG = (250, 250, 251)         # near-white page
+CARD = (255, 255, 255)       # pure white panels
+HEADER_BG = (245, 245, 247)  # subtle gray for the top bar
+BORDER = (228, 228, 231)     # light gray panel borders
+TEXT = (24, 24, 27)          # near-black
+DIM = (113, 113, 122)        # medium gray
+ACCENT = (249, 115, 22)      # HF orange (button / active state)
+BLUE = (37, 99, 235)         # blue for action links
+GREEN = (22, 163, 74)        # green for "live" / success
+SQL_BG = (250, 250, 252)     # near-white panel for the code area
+SQL_TEXT = (51, 65, 85)      # slate-700 for non-keyword SQL tokens
+KEYWORD = (139, 92, 246)     # violet-500 for SQL keywords
 
 # Real predictions from the deployed model. SQL strings are verbatim from
 # reports/predictions/distilled_1p5b_q4.jsonl; the questions come from
@@ -101,7 +105,7 @@ def _draw_sql_line(
             while ws_end < n and line[ws_end].isspace():
                 ws_end += 1
             chunk = line[i:ws_end]
-            draw.text((x, y), chunk, fill=SQL_COLOR, font=font)
+            draw.text((x, y), chunk, fill=SQL_TEXT, font=font)
             bbox = draw.textbbox((x, y), chunk, font=font)
             x = bbox[2]
             i = ws_end
@@ -112,11 +116,27 @@ def _draw_sql_line(
             word_end += 1
         word = line[i:word_end]
         upper = word.upper().strip(",;()")
-        fill = KEYWORD if upper in _SQL_KEYWORDS else SQL_COLOR
+        fill = KEYWORD if upper in _SQL_KEYWORDS else SQL_TEXT
         draw.text((x, y), word, fill=fill, font=font)
         bbox = draw.textbbox((x, y), word, font=font)
         x = bbox[2]
         i = word_end
+
+
+def _rounded_rect(
+    draw: ImageDraw.ImageDraw,
+    xy: tuple[int, int, int, int],
+    *,
+    radius: int,
+    fill=None,
+    outline=None,
+    width: int = 1,
+) -> None:
+    """Rounded-corner panel. Falls back to a plain rectangle on older Pillow."""
+    if hasattr(draw, "rounded_rectangle"):
+        draw.rounded_rectangle(xy, radius=radius, fill=fill, outline=outline, width=width)
+    else:
+        draw.rectangle(xy, fill=fill, outline=outline, width=width)
 
 
 def render_frame(
@@ -128,7 +148,7 @@ def render_frame(
     status: str = "idle",
     fonts: dict,
 ) -> Image.Image:
-    """Render one frame of the demo card.
+    """Render one frame of the demo card in the light HF Soft theme style.
 
     progress is 0.0-1.0 fraction of SQL revealed (typing animation).
     status is one of "idle" | "thinking" | "writing" | "done".
@@ -137,41 +157,42 @@ def render_frame(
     draw = ImageDraw.Draw(img)
 
     # ---- Header bar ----
-    draw.rectangle([0, 0, WIDTH, 44], fill=CARD)
-    draw.text((20, 12), "distill-sql", fill=TEXT, font=fonts["sans_bold"])
+    draw.rectangle([0, 0, WIDTH, 48], fill=HEADER_BG)
+    draw.line([(0, 48), (WIDTH, 48)], fill=BORDER, width=1)
+    draw.text((20, 14), "distill-sql", fill=TEXT, font=fonts["sans_bold"])
     draw.text(
-        (132, 16), "1.5B 4-bit · 847 MB · on-device",
+        (132, 18), "1.5B 4-bit · 847 MB · on-device",
         fill=DIM, font=fonts["sans_small"],
     )
     # green dot + "live" on the right
-    draw.ellipse([WIDTH - 80, 18, WIDTH - 68, 30], fill=GREEN)
+    draw.ellipse([WIDTH - 78, 20, WIDTH - 68, 30], fill=GREEN)
     draw.text(
         (WIDTH - 60, 16), "live", fill=GREEN, font=fonts["sans_small_bold"],
     )
 
     # ---- Database hint ----
     draw.text(
-        (20, 58),
+        (20, 64),
         f"database: {db}",
         fill=DIM, font=fonts["sans_small"],
     )
 
     # ---- Question card ----
-    draw.rectangle([20, 80, WIDTH - 20, 144], fill=CARD, outline=ACCENT, width=1)
-    draw.text((34, 90), "QUESTION", fill=DIM, font=fonts["sans_label"])
-    draw.text((34, 110), question, fill=TEXT, font=fonts["sans_body"])
+    _rounded_rect(draw, (20, 86, WIDTH - 20, 150), radius=8, fill=CARD, outline=BORDER, width=1)
+    draw.text((34, 96), "QUESTION", fill=DIM, font=fonts["sans_label"])
+    draw.text((34, 116), question, fill=TEXT, font=fonts["sans_body"])
 
     # ---- Action indicator (small colored dot + label) ----
-    dot_x, dot_y = 22, 165
+    dot_x, dot_y = 22, 170
     if status == "idle":
         action_text = "press generate"
-        action_color = ACCENT
+        action_color = BLUE
     elif status == "thinking":
         action_text = "generating..."
-        action_color = GREEN
+        action_color = ACCENT
     elif status == "writing":
         action_text = "streaming sql"
-        action_color = GREEN
+        action_color = ACCENT
     else:
         action_text = "done in 1.16s"
         action_color = GREEN
@@ -180,16 +201,17 @@ def render_frame(
               font=fonts["sans_bold_small"])
 
     # ---- SQL output card ----
-    draw.rectangle([20, 188, WIDTH - 20, HEIGHT - 20], fill=SQL_BG, outline=DIM, width=1)
-    draw.text((34, 198), "SQL", fill=DIM, font=fonts["sans_label"])
+    _rounded_rect(draw, (20, 196, WIDTH - 20, HEIGHT - 20), radius=8,
+                  fill=SQL_BG, outline=BORDER, width=1)
+    draw.text((34, 206), "SQL", fill=DIM, font=fonts["sans_label"])
 
-    if status in ("idle",):
+    if status == "idle":
         pass
     elif status == "thinking":
         # animated dots
         dots = "." * (int(progress * 4) % 4 + 1)
         draw.text(
-            (34, 224), f"thinking{dots}",
+            (34, 232), f"thinking{dots}",
             fill=ACCENT, font=fonts["mono"],
         )
     else:
@@ -198,7 +220,7 @@ def render_frame(
         partial = sql[:n_chars]
         lines = partial.split("\n")
         for i, line in enumerate(lines):
-            _draw_sql_line(draw, line, (34, 224 + i * 26), fonts["mono"])
+            _draw_sql_line(draw, line, (34, 232 + i * 26), fonts["mono"])
 
     return img
 

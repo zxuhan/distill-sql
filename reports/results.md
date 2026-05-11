@@ -2,16 +2,16 @@
 
 ## Headline numbers
 
-| model | n | exec | easy | medium | hard | extra | exact_match |
-|---|---|---|---|---|---|---|---|
-| base_qwen_0p5b | 1034 | 0.339 | 0.508 | 0.361 | 0.224 | 0.151 | 0.087 |
-| distilled_ablation_direct | 1034 | 0.594 | 0.786 | 0.643 | 0.489 | 0.283 | 0.198 |
-| distilled_primary | 1034 | 0.600 | 0.815 | 0.668 | 0.477 | 0.223 | 0.217 |
-| distilled_1p5b_q4 | 1034 | 0.625 | 0.835 | 0.695 | 0.494 | 0.259 | 0.233 |
-| distilled_1p5b | 1034 | 0.692 | 0.855 | 0.756 | 0.534 | 0.446 | 0.246 |
-| distilled_3b | 1034 | 0.726 | 0.903 | 0.814 | 0.569 | 0.392 | 0.261 |
-| distilled_7b | 1034 | 0.750 | 0.867 | 0.814 | 0.644 | 0.518 | 0.364 |
-| gpt_4o_mini_reference | 1034 | 0.801 | 0.931 | 0.843 | 0.718 | 0.578 | 0.223 |
+| model | exec | easy | medium | hard | extra |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Base 0.5B (no training) | 33.9% | 50.8% | 36.1% | 22.4% | 15.1% |
+| Distilled 0.5B (direct-only ablation) | 59.4% | 78.6% | 64.3% | 48.9% | 28.3% |
+| Distilled 0.5B (primary recipe) | 60.0% | 81.5% | 66.8% | 47.7% | 22.3% |
+| Distilled 1.5B 4-bit fused (deployment) | 62.5% | 83.5% | 69.5% | 49.4% | 25.9% |
+| Distilled 1.5B (bf16) | 69.2% | 85.5% | 75.6% | 53.4% | 44.6% |
+| Distilled 3B (4-bit base) | 72.6% | 90.3% | 81.4% | 56.9% | 39.2% |
+| Distilled 7B (cloud) | 75.0% | 86.7% | 81.4% | 64.4% | 51.8% |
+| GPT-4o-mini (closed teacher) | 80.1% | 93.1% | 84.3% | 71.8% | 57.8% |
 
 ## Failure-mode breakdown
 

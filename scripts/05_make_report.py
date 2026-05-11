@@ -217,31 +217,56 @@ def _difficulty_chart(results: dict, out_png: Path) -> None:
     console.log(f"per-difficulty chart -> {out_png}")
 
 
+_MODEL_NAME_MAP = {
+    "base_qwen_0p5b": "Base 0.5B (no training)",
+    "distilled_ablation_direct": "Distilled 0.5B (direct-only ablation)",
+    "distilled_primary": "Distilled 0.5B (primary recipe)",
+    "distilled_1p5b_q4": "Distilled 1.5B 4-bit fused (deployment)",
+    "distilled_1p5b": "Distilled 1.5B (bf16)",
+    "distilled_3b": "Distilled 3B (4-bit base)",
+    "distilled_7b": "Distilled 7B (cloud)",
+    "gpt_4o_mini_reference": "GPT-4o-mini (closed teacher)",
+}
+
+
+def _pct(v: float) -> str:
+    return f"{v * 100:.1f}%"
+
+
 def _md_table(results: dict) -> str:
+    """Render the per-model comparison as a Markdown table.
+
+    Drops the always-1034 `n` column and the rarely-cited
+    `exact_match` column to keep the table scannable; reports
+    accuracies as percentages and uses human-readable model labels.
+    """
     rows = sorted(
         ((name, data["summary"]) for name, data in results.items() if "summary" in data),
         key=lambda kv: kv[1]["exec_accuracy"],
     )
-    header = ["model", "n", "exec", "easy", "medium", "hard", "extra", "exact_match"]
-    lines = ["| " + " | ".join(header) + " |", "|" + "|".join(["---"] * len(header)) + "|"]
+    header = ["model", "exec", "easy", "medium", "hard", "extra"]
+    align = ["---", "---:", "---:", "---:", "---:", "---:"]
+    lines = [
+        "| " + " | ".join(header) + " |",
+        "| " + " | ".join(align) + " |",
+    ]
     for name, s in rows:
         bd = s["by_difficulty"]
+        pretty = _MODEL_NAME_MAP.get(name, name)
 
         def cell(d: str) -> str:
-            return f"{bd.get(d, {}).get('exec_accuracy', 0.0):.3f}"
+            return _pct(float(bd.get(d, {}).get("exec_accuracy", 0.0)))
 
         lines.append(
             "| "
             + " | ".join(
                 [
-                    name,
-                    str(int(s["n"])),
-                    f"{s['exec_accuracy']:.3f}",
+                    pretty,
+                    _pct(float(s["exec_accuracy"])),
                     cell("easy"),
                     cell("medium"),
                     cell("hard"),
                     cell("extra"),
-                    f"{s['exact_match_accuracy']:.3f}",
                 ],
             )
             + " |",
@@ -388,8 +413,6 @@ def _substitute_readme_numbers(results_path: Path, readme_path: Path) -> None:
     table = _md_table(results)
     block = (
         f"{_README_NUMBERS_START}\n\n"
-        "Live numbers from `reports/results.md`. Updated by "
-        "`scripts/05_make_report.py`.\n\n"
         f"{table}\n\n"
         f"{_README_NUMBERS_END}"
     )

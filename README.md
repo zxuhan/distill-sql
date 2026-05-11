@@ -1,14 +1,12 @@
 <h1 align="center">distill-sql</h1>
 
 <p align="center">
-  <a href="https://huggingface.co/spaces/zxuhan7/Distill-SQL"><img alt="Live demo" src="https://img.shields.io/badge/HF%20Spaces-live%20demo-yellow"></a>
-  <img alt="Spider dev exec" src="https://img.shields.io/badge/Spider%20dev%20exec-75.0%25-2563eb">
-  <img alt="On-device size" src="https://img.shields.io/badge/On--device-847%20MB%20%2F%201.16s-22c55e">
-  <img alt="License" src="https://img.shields.io/badge/license-MIT-blue">
   <img alt="Python" src="https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white">
   <img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-2.4%2B-EE4C2C?logo=pytorch&logoColor=white">
   <img alt="MLX" src="https://img.shields.io/badge/MLX-0.21%2B-000000?logo=apple&logoColor=white">
   <img alt="Transformers" src="https://img.shields.io/badge/transformers-4.45%2B-FFD21E">
+  <img alt="Spider dev exec" src="https://img.shields.io/badge/Spider%20dev%20exec-75.0%25-2563eb">
+  <img alt="On-device size" src="https://img.shields.io/badge/on--device-847%20MB-22c55e">
   <img alt="Tests" src="https://img.shields.io/badge/tests-148%20passing-brightgreen">
 </p>
 
@@ -30,32 +28,20 @@
 
 ## Evaluation
 
-| | Result |
-|---|---|
-| Deployable model | 1.5B fused 4-bit, **847 MB** on disk, **62.5%** Spider dev exec, 1.16s warm latency on a 16 GB M1 Pro |
-| Scaling axis on M1 (16 GB unified memory) | 0.5B, 1.5B, 3B distilled reach **60.0%, 69.2%, 72.6%** under one fixed recipe |
-| Scaling extension on cloud (4×A100 80GB DDP) | 7B distilled reaches **75.0%** under the same recipe |
-| Closed teacher reference | GPT-4o-mini at **80.1%** under the same prompting protocol |
-| Distillation OpenAI spend | **$0.27** of credits, partial run interrupted by the Tier-1 daily-request cap |
-
-The hard and extra splits, where teacher capacity matters most, close from 14.9 and 18.6 point gaps at the M1-trained 3B to 7.4 and 6.0 point gaps at the cloud-trained 7B. Easy and medium are within 3 points of teacher already at the 3B.
-
-### Per-model results on Spider dev
+All eight model configurations evaluated on the same 1,034-example Spider dev set using the official `test-suite-sql-eval` executor. Rows sorted by overall execution accuracy.
 
 <!-- HEADLINE_NUMBERS_START -->
 
-Live numbers from `reports/results.md`. Updated by `scripts/05_make_report.py`.
-
-| model | n | exec | easy | medium | hard | extra | exact_match |
-|---|---|---|---|---|---|---|---|
-| base_qwen_0p5b | 1034 | 0.339 | 0.508 | 0.361 | 0.224 | 0.151 | 0.087 |
-| distilled_ablation_direct | 1034 | 0.594 | 0.786 | 0.643 | 0.489 | 0.283 | 0.198 |
-| distilled_primary | 1034 | 0.600 | 0.815 | 0.668 | 0.477 | 0.223 | 0.217 |
-| distilled_1p5b_q4 | 1034 | 0.625 | 0.835 | 0.695 | 0.494 | 0.259 | 0.233 |
-| distilled_1p5b | 1034 | 0.692 | 0.855 | 0.756 | 0.534 | 0.446 | 0.246 |
-| distilled_3b | 1034 | 0.726 | 0.903 | 0.814 | 0.569 | 0.392 | 0.261 |
-| distilled_7b | 1034 | 0.750 | 0.867 | 0.814 | 0.644 | 0.518 | 0.364 |
-| gpt_4o_mini_reference | 1034 | 0.801 | 0.931 | 0.843 | 0.718 | 0.578 | 0.223 |
+| model | exec | easy | medium | hard | extra |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Base 0.5B (no training) | 33.9% | 50.8% | 36.1% | 22.4% | 15.1% |
+| Distilled 0.5B (direct-only ablation) | 59.4% | 78.6% | 64.3% | 48.9% | 28.3% |
+| Distilled 0.5B (primary recipe) | 60.0% | 81.5% | 66.8% | 47.7% | 22.3% |
+| Distilled 1.5B 4-bit fused (deployment) | 62.5% | 83.5% | 69.5% | 49.4% | 25.9% |
+| Distilled 1.5B (bf16) | 69.2% | 85.5% | 75.6% | 53.4% | 44.6% |
+| Distilled 3B (4-bit base) | 72.6% | 90.3% | 81.4% | 56.9% | 39.2% |
+| Distilled 7B (cloud) | 75.0% | 86.7% | 81.4% | 64.4% | 51.8% |
+| GPT-4o-mini (closed teacher) | 80.1% | 93.1% | 84.3% | 71.8% | 57.8% |
 
 <!-- HEADLINE_NUMBERS_END -->
 
@@ -63,7 +49,7 @@ Live numbers from `reports/results.md`. Updated by `scripts/05_make_report.py`.
   <img src="reports/figures/by_difficulty.png" alt="Per-difficulty execution accuracy across the scaling axis" width="900">
 </p>
 
-Five points across roughly a 14× parameter range under one fixed recipe (rank-16 LoRA on all linear projections, identical learning-rate schedule, one epoch per run). Gains remain monotonic up to the 7B point but diminish predictably. The largest single jump is 0.5B to 1.5B (+9.2 points), driven by the elimination of execution errors at the smallest scale. The 3B to 7B jump (+2.4 points overall) is concentrated on the hard and extra splits, where the closed teacher still has room above the student.
+The scaling axis is monotonic across the 14× parameter range. The 0.5B → 1.5B gain (+9.2 pt) reflects fewer execution errors at the smallest scale; the 3B → 7B gain (+2.4 pt overall) is concentrated on hard (+7.5 pt) and extra (+12.6 pt) queries, where the closed teacher still has room above the student. Easy and medium are within 3 points of teacher already at the 3B.
 
 ### Quantization tradeoff
 
@@ -129,13 +115,13 @@ The 0.5B distilled student has the vocabulary (`concert`, `stadium`, `manager_na
 
 Cold-load and warm-steady-state, sampled on a 16 GB M1 Pro with greedy decoding and roughly 464-token schema-linked prompts.
 
-| model | warm wall-clock / query | tokens/s | cold load | model on disk |
-|---|---:|---:|---:|---:|
-| `base_qwen_0p5b` | 0.61s | 60 | 3.3s | 1.0 GB |
-| `distilled_primary (0.5B)` | 0.65s | 31 | 1.9s | 1.0 GB |
-| `distilled_1p5b_q4` | **1.16s** | 18 | **0.8s** | **847 MB** |
-| `distilled_1p5b (bf16)` | 1.59s | 14 | 3.2s | 2.9 GB |
-| `distilled_3b (4-bit base)` | 2.03s | 10 | 0.8s | 1.7 GB |
+| model | warm latency | tokens/s | cold load | size on disk |
+| --- | ---: | ---: | ---: | ---: |
+| Base 0.5B | 0.61s | 60 | 3.3s | 1.0 GB |
+| Distilled 0.5B | 0.65s | 31 | 1.9s | 1.0 GB |
+| Distilled 1.5B 4-bit fused | **1.16s** | 18 | **0.8s** | **847 MB** |
+| Distilled 1.5B (bf16) | 1.59s | 14 | 3.2s | 2.9 GB |
+| Distilled 3B (4-bit base) | 2.03s | 10 | 0.8s | 1.7 GB |
 
 Self-hosted models incur no per-query API cost. GPT-4o-mini at the same prompt sizes runs roughly $0.30 per 1,000 queries at posted Tier-1 rates, in addition to network round-trip latency. Full table: [reports/latency.md](reports/latency.md).
 

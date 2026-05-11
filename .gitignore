@@ -78,3 +78,6 @@ ENV/
 
 # Jupyter
 .ipynb_checkpoints/
+
+# uv lockfile (regenerated locally; not pinned in the repo)
+/uv.lock
