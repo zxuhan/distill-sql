@@ -7,7 +7,7 @@
   <img alt="Transformers" src="https://img.shields.io/badge/transformers-4.45%2B-FFD21E">
   <img alt="Spider dev exec" src="https://img.shields.io/badge/Spider%20dev%20exec-75.0%25-2563eb">
   <img alt="On-device size" src="https://img.shields.io/badge/on--device-847%20MB-22c55e">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-148%20passing-brightgreen">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-160%20passing-brightgreen">
 </p>
 
 <p align="center">
@@ -65,7 +65,7 @@ The 4-bit 1.5B beats every 0.5B configuration trained in this repository (best 0
 
 ### Failure modes
 
-The teacher generates three samples per question at temperature 0.3. Each sample executes against the example's SQLite database; only samples whose result set matches gold rows under multiset equality are kept as training traces. Of **28,716** teacher generations across ~9.6K Spider train examples, **3,397 (~12%)** survive this filter and become the trace dataset. The cloud 7B run trains on a 2,125-example subset that fits the 1024-token context window after length-trimming.
+The teacher generates three samples per question at temperature 0.3. Each sample executes against the example's SQLite database; the winning sample whose result set matches gold rows under multiset equality is kept as the training trace. Of **~3,747** Spider train questions attempted (limited by the Tier-1 OpenAI daily-request cap), **3,397 (~91%)** yielded at least one passing sample and produced a kept trace. The cloud 7B run trains on a 2,125-example subset that fits the 1024-token context window after length-trimming.
 
 Failure-mode counts on the 1034-example Spider dev set (counts, not percentages):
 
@@ -127,16 +127,7 @@ Self-hosted models incur no per-query API cost. GPT-4o-mini at the same prompt s
 
 ## Architecture
 
-```mermaid
-flowchart LR
-    spider[(Spider train)] --> teacher[Teacher · GPT-4o-mini<br/>n=3 · exec-validated]
-    teacher --> traces[(Filtered traces<br/>3.4K examples)]
-    traces --> mlx[M1 · mlx-lm<br/>0.5B / 1.5B / 3B]
-    traces --> cloud[Cloud · trl+peft<br/>7B · 4-GPU DDP]
-    mlx --> eval[Spider dev evaluation]
-    cloud --> eval
-    mlx -. fuse + 4-bit .-> hf[(HF Space · 847 MB)]
-```
+![distill-sql architecture](assets/architecture.svg)
 
 The same trace JSONL feeds the Mac and cloud arms. LoRA hyperparameters (rank 16, alpha 32, all linear targets), learning rate, and schedule are identical across all five training runs. Only the parameter count and the framework differ.
 

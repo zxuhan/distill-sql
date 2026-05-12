@@ -1,0 +1,57 @@
+# distill-sql architecture
+#
+# Source of truth for assets/architecture.svg, which is what the README embeds.
+# Re-render after editing: `make diagram` (or `d2 assets/architecture.d2 assets/architecture.svg`).
+#
+# Shape convention: cylinders are stored artifacts, rectangles are compute.
+# Colour grouping tracks the pipeline phase (source / teacher / traces / student / eval / deploy).
+
+direction: right
+
+spider: "Spider train" {
+  shape: cylinder
+  style.fill: "#eef2ff"
+  style.stroke: "#4f46e5"
+}
+
+teacher: "Teacher · GPT-4o-mini\nn=3 · exec-validated" {
+  style.fill: "#fef2f2"
+  style.stroke: "#dc2626"
+}
+
+traces: "Filtered traces\n3.4K examples" {
+  shape: cylinder
+  style.fill: "#fefce8"
+  style.stroke: "#ca8a04"
+}
+
+mlx: "M1 · mlx-lm\n0.5B / 1.5B / 3B" {
+  style.fill: "#f0fdf4"
+  style.stroke: "#16a34a"
+}
+
+cloud: "Cloud · trl+peft\n7B · 4-GPU DDP" {
+  style.fill: "#f0fdf4"
+  style.stroke: "#16a34a"
+}
+
+eval: "Spider dev evaluation" {
+  style.fill: "#f5f3ff"
+  style.stroke: "#7c3aed"
+}
+
+hf: "HF Space · 847 MB" {
+  shape: cylinder
+  style.fill: "#fff7ed"
+  style.stroke: "#ea580c"
+}
+
+spider -> teacher
+teacher -> traces
+traces -> mlx
+traces -> cloud
+mlx -> eval
+cloud -> eval
+mlx -> hf: "fuse + 4-bit" {
+  style.stroke-dash: 3
+}

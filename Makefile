@@ -8,7 +8,7 @@ SCRIPTS := scripts
 
 .PHONY: help install lint format typecheck test test-fast test-slow \
         data baseline teacher train eval eval-teacher report \
-        clean-cache clean-artifacts
+        diagram clean-cache clean-artifacts
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -59,6 +59,9 @@ eval-teacher: ## Run only the GPT-4o-mini reference and merge into results.json
 
 report: ## Build final results.md and chart from eval JSONs
 	$(PY) $(SCRIPTS)/05_make_report.py
+
+diagram: ## Render README architecture SVG from assets/architecture.d2 (requires `d2`)
+	d2 --layout=elk --pad=20 assets/architecture.d2 assets/architecture.svg
 
 clean-cache: ## Wipe artifacts/cache (teacher API cache)
 	rm -rf artifacts/cache
